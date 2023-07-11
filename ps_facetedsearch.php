@@ -729,32 +729,20 @@ class Ps_Facetedsearch extends Module implements WidgetInterface
         );
     }
 
-    private function getFilterGroupId(): int
+    /**
+     * @param class-string $className
+     */
+    private function getCustomFilterModelId(string $className)
     {
-        return (int) Tools::getValue('filter_group', 0);
-    }
-
-    private function getFilterSubgroupId(): int
-    {
-        return (int) Tools::getValue('filter_subgroup', 0);
-    }
-
-    private function checkModelExists(ObjectModel $model, int $id)
-    {
-        if ($model->id === null && $id !== 0) {
-            Tools::redirectAdmin($this->context->link->getAdminLink('AdminModules', true, [], [
-                'configure' => $this->name,
-            ]));
-        }
+        return (int) Tools::getValue($className::$definition['table'], 0);
     }
 
     /**
      * @param class-string $className
      */
-
     private function checkIfFilterModelExists(string $className)
     {
-        $id = (int) Tools::getValue($className::$definition['table'], 0);
+        $id = $this->getCustomFilterModelId($className);
         $object = new $className($id);
         if ($object->id === null && $id !== 0) {
 //            Tools::redirectAdmin($this->context->link->getAdminLink('AdminModules', true, [], [
@@ -771,9 +759,12 @@ class Ps_Facetedsearch extends Module implements WidgetInterface
         Tools::redirectAdmin($this->context->link->getAdminLink('AdminModules', true, [], $params));
     }
 
+    /**
+     * @param class-string $className
+     */
     private function removeCustomFilterModel(string $className)
     {
-        $id = (int) Tools::getValue($className::$definition['table'], 0);
+        $id = $this->getCustomFilterModelId($className);
         return (new $className($id))->delete();
     }
 
@@ -786,11 +777,11 @@ class Ps_Facetedsearch extends Module implements WidgetInterface
         $message = '';
 
         if (Tools::getValue('delete_custom_filter')) {
-            if ($this->getFilterGroupId()) {
+            if ($this->getCustomFilterModelId('FilterGroup')) {
                 if (!$this->removeCustomFilterModel('FilterGroup')) {
                     $message .= $this->getSaveFailureMessage();
                 }
-            } elseif ($this->getFilterSubgroupId()) {
+            } elseif ($this->getCustomFilterModelId('FilterSubgroup')) {
                 if (!$this->removeCustomFilterModel('FilterSubgroup')) {
                     $message .= $this->getSaveFailureMessage();
                 }
