@@ -46,7 +46,7 @@
                 </button>
                 <ul class="dropdown-menu">
                   <li>
-                    <a href="{$current_url}&amp;deleteFilterSubgroup={(int)$subgroup->id}"
+                    <a href="{$current_url}&amp;delete_custom_filter=1&amp;filter_subgroups={(int)$subgroup->id}"
                        onclick="return confirm('{l s='Do you really want to delete this filter template?' d='Modules.Facetedsearch.Admin'}');">
                       <i class="icon-trash"></i> {l s='Delete' d='Admin.Actions'}
                     </a>

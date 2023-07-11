@@ -78,7 +78,7 @@
                     </button>
                     <ul class="dropdown-menu">
                       <li>
-                        <a href="{$current_url}&amp;deleteFilterGroup={(int)$filter_group->id}"
+                        <a href="{$current_url}&amp;delete_custom_filter=1&amp;filter_group={(int)$filter_group->id}"
                            onclick="return confirm('{l s='Do you really want to delete this filter template?' d='Modules.Facetedsearch.Admin'}');">
                           <i class="icon-trash"></i> {l s='Delete' d='Admin.Actions'}
                         </a>
@@ -94,9 +94,6 @@
     </table>
     <div class="clearfix">&nbsp;</div>
   </div>
-    {*    {else}*}
-    {*      <div class="row alert alert-warning">{l s='No filter template found.' d='Modules.Facetedsearch.Admin'}</div>*}
-    {*    {/if}*}
     {if empty($limit_warning)}
       <div class="panel-footer">
         <a class="btn btn-default pull-right" href="{$current_url}&amp;filter_group=0"><i class="process-icon-plus"></i> {l s='Add new' d='Modules.Facetedsearch.Admin'}</a>

@@ -771,6 +771,12 @@ class Ps_Facetedsearch extends Module implements WidgetInterface
         Tools::redirectAdmin($this->context->link->getAdminLink('AdminModules', true, [], $params));
     }
 
+    private function removeCustomFilterModel(string $className)
+    {
+        $id = (int) Tools::getValue($className::$definition['table'], 0);
+        return (new $className($id))->delete();
+    }
+
     /**
      * Get page content
      */
@@ -778,6 +784,18 @@ class Ps_Facetedsearch extends Module implements WidgetInterface
     {
         global $cookie;
         $message = '';
+
+        if (Tools::getValue('delete_custom_filter')) {
+            if ($this->getFilterGroupId()) {
+                if (!$this->removeCustomFilterModel('FilterGroup')) {
+                    $message .= $this->getSaveFailureMessage();
+                }
+            } elseif ($this->getFilterSubgroupId()) {
+                if (!$this->removeCustomFilterModel('FilterSubgroup')) {
+                    $message .= $this->getSaveFailureMessage();
+                }
+            }
+        }
 
         if (Tools::isSubmit('submitFilterValues')) {
             $filter_subgroup = $this->checkIfFilterModelExists('FilterSubgroup');
