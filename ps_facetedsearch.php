@@ -712,9 +712,15 @@ class Ps_Facetedsearch extends Module implements WidgetInterface
         return $helper->generateForm([$form]);
     }
 
-    private function getSaveFailureMessage() {
+    private function getSaveFailureMessage(string $message) {
         return "<div class=\"alert alert-danger\" role=\"alert\">
-                  <p class=\"alert-text\">FAILURE MESSAGE!</p>
+                  <p class=\"alert-text\">" . $message .  "</p>
+                </div>";
+    }
+
+    private function getSaveSuccessMessage(string $message) {
+        return "<div class=\"alert alert-success\" role=\"alert\">
+                  <p class=\"alert-text\">" . $message .  "</p>
                 </div>";
     }
 
@@ -772,11 +778,23 @@ class Ps_Facetedsearch extends Module implements WidgetInterface
         if (Tools::getValue('delete_custom_filter')) {
             if ($this->getCustomFilterModelId('FilterGroup')) {
                 if (!$this->removeCustomFilterModel('FilterGroup')) {
-                    $message .= $this->getSaveFailureMessage();
+                    $message .= $this->getSaveFailureMessage(
+                        $this->trans('Filter group removal went wrong, it was not removed', [], 'Modules.Facetedsearch.Admin')
+                    );
+                } else {
+                    $message .= $this->getSaveSuccessMessage(
+                        $this->trans('Filter group removal succeed', [], 'Modules.Facetedsearch.Admin')
+                    );
                 }
             } elseif ($this->getCustomFilterModelId('FilterSubgroup')) {
                 if (!$this->removeCustomFilterModel('FilterSubgroup')) {
-                    $message .= $this->getSaveFailureMessage();
+                    $message .= $this->getSaveFailureMessage(
+                        $this->trans('Filter subgroup removal went wrong, it was not removed', [], 'Modules.Facetedsearch.Admin')
+                    );
+                } else {
+                    $message .= $this-$this->getSaveSuccessMessage(
+                        $this->trans('Filter subgroup removal succeed', [], 'Modules.Facetedsearch.Admin')
+                    );
                 }
             }
         }
@@ -790,24 +808,25 @@ class Ps_Facetedsearch extends Module implements WidgetInterface
             }
 
             if (!$this->removeFilterValues($filter_subgroup->id)) {
-                $message .= $this->getSaveFailureMessage();
+                $message .= $this->getSaveFailureMessage(
+                    $this->trans('Filter values update went wrong', [], 'Modules.Facetedsearch.Admin')
+                );
+            } else {
+                $checkboxes = Tools::getValue('selected_attribute');
+                $result = null;
+                foreach ($checkboxes as $checkbox) {
+                    $filterValue = new FilterValue();
+                    $filterValue->id_filter_subgroup = $filter_subgroup->id;
+                    $checkboxValues = explode(';', $checkbox);
+                    $filterValue->id_attribute = $checkboxValues[0];
+                    $filterValue->id_attribute_group = $checkboxValues[1];
+                    $result = $filterValue->save();
+                }
+                $message .= $result
+                    ? $this->getSaveSuccessMessage($this->trans('Attribtues successfully added to filter subgroup', [], 'Modules.Facetedsearch.Admin'))
+                    : $this->getSaveFailureMessage($this->trans('Adding new attributes to filter value failed', [], 'Modules.Facetedsearch.Admin'));
             }
 
-            $checkboxes = Tools::getValue('selected_attribute');
-            $result = null;
-            foreach ($checkboxes as $checkbox) {
-                $filterValue = new FilterValue();
-                $filterValue->id_filter_subgroup = $filter_subgroup->id;
-                $checkboxValues = explode(';', $checkbox);
-                $filterValue->id_attribute = $checkboxValues[0];
-                $filterValue->id_attribute_group = $checkboxValues[1];
-                $result = $filterValue->save();
-            }
-            if (!$result) {
-                $message .= $this->getSaveFailureMessage();
-            } else {
-                var_dump("SUCCESS!");
-            }
         } elseif (Tools::isSubmit('submitCustomFilterGroup')) {
             $filter_group = $this->checkIfFilterModelExists('FilterGroup');
 
@@ -816,9 +835,12 @@ class Ps_Facetedsearch extends Module implements WidgetInterface
             $filter_group->type = Tools::getValue('custom_filter_group_type');
 
             if ($filter_group->save(false, false)) {
+                $_SESSION['submitCustomFilterGroup'] = true;
                 $this->redirectAdmin(['filter_group' => $filter_group->id]);
             } else {
-                $message .= $this->getSaveFailureMessage();
+                $message .= $this->getSaveFailureMessage(
+                    $this->trans('Creation of filter group failed', [], 'Modules.Facetedsearch.Admin')
+                );
             }
 
         } elseif (Tools::isSubmit('submitCustomFilterSubgroup')) {
@@ -842,17 +864,26 @@ class Ps_Facetedsearch extends Module implements WidgetInterface
             }
 
             if ($filter_subgroup->save(false, false)) {
+                $_SESSION['submitCustomFilterSubgroup'] = true;
                 $this->redirectAdmin([
                     'filter_group' => $filter_subgroup->id_filter_group,
                     'filter_subgroup' => $filter_subgroup->id,
                 ]);
             } else {
-                $message .= $this->getSaveFailureMessage();
+                $message .= $this->getSaveFailureMessage(
+                    $this->trans('Creation of filter subgroup failed', [], 'Modules.Facetedsearch.Admin')
+                );
             }
         }
 
 
         if (Tools::getValue('filter_subgroup') !== false) {
+            if (isset($_SESSION['submitCustomFilterSubgroup'])) {
+                unset($_SESSION['submitCustomFilterSubgroup']);
+                $message .= $this->getSaveSuccessMessage(
+                    $this->trans('Filter subgroup operation succeed', [], 'Modules.Facetedsearch.Admin')
+                );
+            }
             $filter_group = $this->checkIfFilterModelExists('FilterGroup');
 
             $filter_subgroup = $this->checkIfFilterModelExists('FilterSubgroup');
@@ -906,6 +937,12 @@ class Ps_Facetedsearch extends Module implements WidgetInterface
             return $message . $html;
 
         } elseif (Tools::getValue('filter_group') !== false) {
+            if (isset($_SESSION['submitCustomFilterGroup'])) {
+                unset($_SESSION['submitCustomFilterGroup']);
+                $message .= $this->getSaveSuccessMessage(
+                    $this->trans('Filter group operation succeed', [], 'Modules.Facetedsearch.Admin')
+                );
+            }
             $filter_group = $this->checkIfFilterModelExists('FilterGroup');
 
             if ($filter_group->id) {
