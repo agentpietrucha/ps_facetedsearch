@@ -29,6 +29,11 @@ if (file_exists($autoloadPath)) {
 use PrestaShop\Module\FacetedSearch\Filters\Converter;
 use PrestaShop\Module\FacetedSearch\HookDispatcher;
 use PrestaShop\PrestaShop\Core\Module\WidgetInterface;
+use PrestaShop\PrestaShop\Adapter\Attribute\AttributeDataProvider;
+
+include_once __DIR__ . '/src/Models/FilterGroup.php';
+include_once __DIR__ . '/src/Models/FilterSubgroup.php';
+include_once __DIR__ . '/src/Models/FilterValue.php';
 
 class Ps_Facetedsearch extends Module implements WidgetInterface
 {
@@ -586,6 +591,186 @@ class Ps_Facetedsearch extends Module implements WidgetInterface
         }
     }
 
+    public function renderFilterGroupForm(FilterGroup $filterGroup) {
+        $select_values = [];
+        foreach (FilterGroup::TYPES as $type) {
+            $select_values[] = [
+                'id' => $type['id'],
+                'name' => $type['name'],
+            ];
+        }
+
+        $title = $filterGroup->id === null
+            ? $this->trans('[NEW] Custom filters group name', [], 'Modules.Facetedsearch.Admin')
+            : $this->trans('[EDIT] Custom filters group name', [], 'Modules.Facetedsearch.Admin');
+
+        $form = [
+            'form' => [
+                'legend' => [
+                    'title' => $title,
+                    'icon' => 'icon-cogs',
+                ],
+                'input' => [
+                    [
+                        'type' => 'text',
+                        'label' => $this->trans('Custom filter group name', [], 'Modules.Facetedsearch.Admin'),
+                        'name' => 'custom_filter_group_name',
+                        'required' => true,
+                        'lang' => true,
+                    ],
+                    [
+                        'type' => 'select',
+                        'label' => $this->trans('Filter type', [], 'Modules.Facetedsearch.Admin'),
+                        'name' => 'custom_filter_group_type',
+                        'required' => true,
+                        'options' => [
+                            'query' => $select_values,
+                            'id' => 'id',
+                            'name' => 'name',
+                        ]
+                    ]
+                ],
+                'submit' => [
+                    'title' => $this->trans('Save', [], 'Modules.Facetedsearch.Admin'),
+                    'class' => 'btn btn-default pull-right',
+                ],
+            ],
+        ];
+
+        $helper = new HelperForm();
+
+        $helper->id = $filterGroup->id;
+        $helper->identifier = FilterGroup::$definition['primary'];
+
+        $helper->name_controller = $this->name;
+        $helper->token = Tools::getAdminTokenLite('AdminModules');
+        // Add option to stay on Filter Group page after updating/creating one
+//        $helper->currentIndex = AdminController::$currentIndex . '&' . http_build_query(['configure' => $this->name]);
+        $helper->submit_action = 'submitCustomFilterGroup';
+        $helper->show_cancel_button = true;
+
+        $lang_default = new Language((int) Configuration::get('PS_LANG_DEFAULT'));
+        $helper->default_form_language = $lang_default->id;
+
+        $languages = $this->context->controller->getLanguages();
+        $helper->languages = $languages;
+
+        $helper->fields_value['custom_filter_group_type'] = $filterGroup->type;
+        foreach ($languages as $language) {
+            $id_lang = $language['id_lang'];
+            $helper->fields_value['custom_filter_group_name'][$id_lang] = $filterGroup->name[$id_lang] ?? '';
+        }
+
+        return $helper->generateForm([$form]);
+    }
+
+    public function renderFilterSubgroupForm (FilterSubgroup $filterSubgroup) {
+        $title = $filterSubgroup->id === null
+            ? $this->trans('[NEW] Custom filters subgroup name', [], 'Modules.Facetedsearch.Admin')
+            : $this->trans('[EDIT] Custom filters subgroup name', [], 'Modules.Facetedsearch.Admin');
+        $form = [
+            'form' => [
+                'legend' => [
+                    'title' => $title,
+                    'icon' => 'icon-cogs',
+                ],
+                'input' => [
+                    [
+                        'type' => 'text',
+                        'label' => $this->trans('Custom filter subgroup name', [], 'Modules.Facetedsearch.Admin'),
+                        'name' => 'custom_filter_subgroup_name',
+                        'required' => true,
+                        'lang' => true,
+                    ]
+                ],
+                'submit' => [
+                    'title' => $this->trans('Save', [], 'Modules.Facetedsearch.Admin'),
+                    'class' => 'btn btn-default pull-right',
+                ],
+            ],
+        ];
+
+        $helper = new HelperForm();
+
+        $helper->id = $filterSubgroup->id;
+        $helper->identifier = FilterSubgroup::$definition['primary'];
+
+        $helper->module = $this;
+        $helper->name_controller = $this->name;
+        $helper->token = Tools::getAdminTokenLite('AdminModules');
+//        $helper->currentIndex = AdminController::$currentIndex . '&' . http_build_query(['configure' => $this->name, 'filter_group' => $filterSubgroup->id_filter_group, 'filter_subgroup' => $filterSubgroup->id]);
+        $helper->submit_action = 'submitCustomFilterSubgroup';
+        $helper->show_cancel_button = true;
+
+        $lang_default = new Language((int) Configuration::get('PS_LANG_DEFAULT'));
+        $helper->default_form_language = $lang_default->id;
+
+        $languages = $this->context->controller->getLanguages();
+        $helper->languages = $languages;
+
+        foreach ($languages as $language) {
+            $id_lang = $language['id_lang'];
+            $helper->fields_value['custom_filter_subgroup_name'][$id_lang] = $filterSubgroup->name[$id_lang] ?? '';
+        }
+
+        return $helper->generateForm([$form]);
+    }
+
+    private function getSaveFailureMessage() {
+        return "<div class=\"alert alert-danger\" role=\"alert\">
+                  <p class=\"alert-text\">FAILURE MESSAGE!</p>
+                </div>";
+    }
+
+    private function removeFilterValues(int $id) {
+        return $this->getDatabase()->execute(
+            'DELETE FROM ' . _DB_PREFIX_ . 'filter_value
+                WHERE id_filter_subgroup = ' . $id
+        );
+    }
+
+    private function getFilterGroupId(): int
+    {
+        return (int) Tools::getValue('filter_group', 0);
+    }
+
+    private function getFilterSubgroupId(): int
+    {
+        return (int) Tools::getValue('filter_subgroup', 0);
+    }
+
+    private function checkModelExists(ObjectModel $model, int $id)
+    {
+        if ($model->id === null && $id !== 0) {
+            Tools::redirectAdmin($this->context->link->getAdminLink('AdminModules', true, [], [
+                'configure' => $this->name,
+            ]));
+        }
+    }
+
+    /**
+     * @param class-string $className
+     */
+
+    private function checkIfFilterModelExists(string $className)
+    {
+        $id = (int) Tools::getValue($className::$definition['table'], 0);
+        $object = new $className($id);
+        if ($object->id === null && $id !== 0) {
+//            Tools::redirectAdmin($this->context->link->getAdminLink('AdminModules', true, [], [
+//                'configure' => $this->name,
+//            ]));
+            $this->redirectAdmin([]);
+        }
+        return $object;
+    }
+
+    private function redirectAdmin(array $params)
+    {
+        $params['configure'] = $this->name;
+        Tools::redirectAdmin($this->context->link->getAdminLink('AdminModules', true, [], $params));
+    }
+
     /**
      * Get page content
      */
@@ -593,6 +778,195 @@ class Ps_Facetedsearch extends Module implements WidgetInterface
     {
         global $cookie;
         $message = '';
+
+        if (Tools::isSubmit('submitFilterValues')) {
+            $filter_subgroup = $this->checkIfFilterModelExists('FilterSubgroup');
+//            $filter_subgroup_id = $this->getFilterSubgroupId();
+//            $filter_subgroup = new FilterSubgroup($filter_subgroup_id);
+//            $this->checkModelExists($filter_subgroup, $filter_subgroup_id);
+
+            // check for filter_subgroup === 0
+            if ($filter_subgroup->id === null) {
+//                Tools::redirectAdmin($this->context->link->getAdminLink('AdminModules', true, [], [
+//                    'configure' => $this->name,
+//                ]));
+                $this->redirectAdmin([]);
+            }
+
+            if (!$this->removeFilterValues($filter_subgroup->id)) {
+                $message .= $this->getSaveFailureMessage();
+            }
+
+            $checkboxes = Tools::getValue('selected_attribute');
+            $result = null;
+            foreach ($checkboxes as $checkbox) {
+                $filterValue = new FilterValue();
+                $filterValue->id_filter_subgroup = $filter_subgroup->id;
+                $checkboxValues = explode(';', $checkbox);
+                $filterValue->id_attribute = $checkboxValues[0];
+                $filterValue->id_attribute_group = $checkboxValues[1];
+                $result = $filterValue->save();
+            }
+            if (!$result) {
+                $message .= $this->getSaveFailureMessage();
+            } else {
+                var_dump("SUCCESS!");
+            }
+        } elseif (Tools::isSubmit('submitCustomFilterGroup')) {
+            $filter_group = $this->checkIfFilterModelExists('FilterGroup');
+//            $filter_group_id = $this->getFilterGroupId();
+//            $filter_group = new FilterGroup($filter_group_id);
+//            $this->checkModelExists($filter_group, $filter_group_id);
+
+            $lang_id = $this->context->language->id;
+            $filter_group->name[$lang_id] = Tools::getValue('custom_filter_group_name_' . $lang_id);
+            $filter_group->type = Tools::getValue('custom_filter_group_type');
+
+            if ($filter_group->save(false, false)) {
+//                Tools::redirectAdmin($this->context->link->getAdminLink('AdminModules', true, [], [
+//                    'configure' => $this->name,
+//                    'filter_group' => $filter_group->id,
+//                ]));
+                $this->redirectAdmin(['filter_group' => $filter_group->id]);
+            } else {
+                $message .= $this->getSaveFailureMessage();
+            }
+
+        } elseif (Tools::isSubmit('submitCustomFilterSubgroup')) {
+            $filter_group = $this->checkIfFilterModelExists('FilterGroup');
+//            $filter_group_id = $this->getFilterGroupId();
+//            $filter_group = new FilterGroup($filter_group_id);
+//            $this->checkModelExists($filter_group, $filter_group_id);
+
+            $filter_subgroup = $this->checkIfFilterModelExists('FilterSubgroup');
+//            $filter_subgroup_id = $this->getFilterSubgroupId();
+//            $filter_subgroup = new FilterSubgroup($filter_subgroup_id);
+//            $this->checkModelExists($filter_subgroup, $filter_subgroup_id);
+
+            if ($filter_group->id === null && $filter_subgroup->id !== null) {
+                $filter_group = new FilterGroup($filter_subgroup->id);
+            } elseif ($filter_group->id === null && $filter_subgroup->id === null) {
+//                Tools::redirectAdmin($this->context->link->getAdminLink('AdminModules', true, [], [
+//                    'configure' => $this->name,
+//                ]));
+                $this->redirectAdmin([]);
+            }
+
+            $lang_id = $this->context->language->id;
+            $filter_subgroup->name[$lang_id] = Tools::getValue('custom_filter_subgroup_name_' . $lang_id);
+            $filter_subgroup->position = 0;
+
+            // set "id_filter_group" only if creating new record. Don't override
+            if ($filter_subgroup->id === null) {
+                $filter_subgroup->id_filter_group = $filter_group->id;
+            }
+
+            if ($filter_subgroup->save(false, false)) {
+//                Tools::redirectAdmin($this->context->link->getAdminLink('AdminModules', true, [], [
+//                    'configure' => $this->name,
+//                    'filter_group' => $filter_subgroup->id_filter_group,
+//                    'filter_subgroup' => $filter_subgroup->id,
+//                ]));
+                $this->redirectAdmin([
+                    'filter_group' => $filter_subgroup->id_filter_group,
+                    'filter_subgroup' => $filter_subgroup->id,
+                ]);
+            } else {
+                $message .= $this->getSaveFailureMessage();
+            }
+        }
+
+
+        if (Tools::getValue('filter_subgroup') !== false) {
+            $filter_group = $this->checkIfFilterModelExists('FilterGroup');
+//            $filter_group_id = $this->getFilterGroupId();
+//            $filter_group = new FilterGroup($filter_group_id);
+//            $this->checkModelExists($filter_group, $filter_group_id);
+
+            $filter_subgroup = $this->checkIfFilterModelExists('FilterSubgroup');
+//            $filter_subgroup_id = $this->getFilterSubgroupId();
+//            $filter_subgroup = new FilterSubgroup($filter_subgroup_id);
+//            $this->checkModelExists($filter_subgroup, $filter_subgroup_id);
+
+            // If no filter group is specified, user can be redirected to proper filter group as long as
+            // given subgroup exists
+            if ($filter_group->id === null && $filter_subgroup->id !== null) {
+//                Tools::redirectAdmin($this->context->link->getAdminLink('AdminModules', true, [], [
+//                    'configure' => $this->name,
+//                    'filter_group' => $filter_subgroup->id_filter_group,
+//                    'filter_subgroup' => $filter_subgroup->id,
+//                ]));
+                $this->redirectAdmin([
+                    'filter_group' => $filter_subgroup->id_filter_group,
+                    'filter_subgroup' => $filter_subgroup->id,
+                ]);
+            // if neither filter group nor subgroup exists (id === 0), then redirect to module homepage
+            } elseif ($filter_group->id === null && $filter_subgroup->id === null) {
+//                Tools::redirectAdmin($this->context->link->getAdminLink('AdminModules', true, [], [
+//                    'configure' => $this->name,
+//                ]));
+                $this->redirectAdmin([]);
+            }
+
+            $html = $this->renderFilterSubgroupForm($filter_subgroup);
+
+            if ($filter_subgroup->id) {
+                $lang_id = $this->context->language->id;
+
+                $selectedAttributesIds = [];
+                $selectedAttributes = (new PrestaShopCollection('FilterValue'))
+                    ->where('id_filter_subgroup', '=', $filter_subgroup->id)
+                    ->getResults();
+                foreach ($selectedAttributes as $selectedAttribute) {
+                    $selectedAttributesIds[] = $selectedAttribute->id_attribute;
+                }
+
+                $attribute_grouped = [];
+                $attributes = AttributeDataProvider::getAttributes($lang_id);
+                foreach ($attributes as $attribute) {
+                    $attribute['selected'] = in_array($attribute['id_attribute'], $selectedAttributesIds);
+                    $attribute_grouped[$attribute['attribute_group']][] = $attribute;
+                }
+
+                // Sort by name and then by selected
+                foreach ($attribute_grouped as $key => $values) {
+                    usort($values, fn ($a, $b) => $a['name'] <=> $b['name']);
+                    usort($values, fn ($a, $b) => $b['selected'] <=> $a['selected']);
+                    $attribute_grouped[$key] = $values;
+                }
+
+                $this->context->smarty->assign([
+                    'attribute_grouped' => $attribute_grouped,
+                ]);
+
+                $html .= $this->display(__FILE__, 'views/templates/admin/custom_filters_subgroups.tpl');
+            }
+
+            return $message . $html;
+
+        } elseif (Tools::getValue('filter_group') !== false) {
+            $filter_group = $this->checkIfFilterModelExists('FilterGroup');
+
+            if ($filter_group->id) {
+                $subgroups = (new PrestaShopCollection('FilterSubgroup', $this->context->language->id))
+                    ->where('id_filter_group', '=', $filter_group->id)
+                    ->orderBy('position')
+                    ->getResults();
+
+                $this->context->smarty->assign([
+                    'current_url' => $this->context->link->getAdminLink('AdminModules') . '&configure=ps_facetedsearch&tab_module=front_office_features&module_name=ps_facetedsearch',
+                    'filter_subgroups' => $subgroups,
+                    'filter_group_id' => $filter_group->id,
+                ]);
+            }
+
+            $html = $this->renderFilterGroupForm($filter_group);
+            $html .= $this->display(__FILE__, 'views/templates/admin/custom_filters_group.tpl');
+
+            return $message . $html;
+        }
+
+
 
         if (Tools::isSubmit('SubmitFilter')) {
             // Get filter data
@@ -799,6 +1173,7 @@ class Ps_Facetedsearch extends Module implements WidgetInterface
             'filter_by_default_category' => (bool) Configuration::get('PS_LAYERED_FILTER_BY_DEFAULT_CATEGORY'),
             'use_jquery_ui_slider' => (bool) Configuration::get('PS_USE_JQUERY_UI_SLIDER'),
             'default_category_template' => Configuration::get('PS_LAYERED_DEFAULT_CATEGORY_TEMPLATE'),
+            'filter_groups' => (new PrestaShopCollection('FilterGroup', $this->context->language->id))->getResults(),
         ]);
 
         return $this->display(__FILE__, 'views/templates/admin/manage.tpl');

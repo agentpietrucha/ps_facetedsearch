@@ -47,6 +47,64 @@
 	<div class="alert alert-info">{l s='A nightly rebuild is recommended.' d='Modules.Facetedsearch.Admin'}</div>
   </div>
 </div>
+
+{*----------------------------CUSTOM FILTERS----------------------------*}
+<div class="panel">
+  <h3><i class="icon-cogs"></i> {l s='Custom Filters Groups' d='Modules.Facetedsearch.Admin'}<span class="badge">{$filter_groups|count}</span></h3>
+    {*    {if count($filter_groups) > 0}*}
+  <div class="row">
+    <table class="table">
+      <thead>
+      <tr>
+        <th class="fixed-width-xs center"><span class="title_box">{l s='ID' d='Admin.Global'}</span></th>
+        <th><span class="title_box text-left">{l s='Name' d='Admin.Global'}</span></th>
+        <th class="fixed-width-sm"><span class="title_box text-right">{l s='Actions' d='Modules.Facetedsearch.Admin'}</span></th>
+      </tr>
+      </thead>
+      <tbody>
+      {foreach $filter_groups as $filter_group}
+        <tr>
+          <td class="center">{$filter_group->id}</td>
+          <td class="text-left">{$filter_group->name}</td>
+          <td>
+              {if empty($limit_warning)}
+                <div class="btn-group-action">
+                  <div class="btn-group pull-right">
+                    <a href="{$current_url}&amp;filter_group={(int)$filter_group->id}" class="btn btn-default">
+                      <i class="icon-pencil"></i> {l s='Edit' d='Admin.Actions'}
+                    </a>
+                    <button class="btn btn-default dropdown-toggle" data-toggle="dropdown">
+                      <span class="caret"></span>&nbsp;
+                    </button>
+                    <ul class="dropdown-menu">
+                      <li>
+                        <a href="{$current_url}&amp;deleteFilterGroup={(int)$filter_group->id}"
+                           onclick="return confirm('{l s='Do you really want to delete this filter template?' d='Modules.Facetedsearch.Admin'}');">
+                          <i class="icon-trash"></i> {l s='Delete' d='Admin.Actions'}
+                        </a>
+                      </li>
+                    </ul>
+                  </div>
+                </div>
+              {/if}
+          </td>
+        </tr>
+      {/foreach}
+      </tbody>
+    </table>
+    <div class="clearfix">&nbsp;</div>
+  </div>
+    {*    {else}*}
+    {*      <div class="row alert alert-warning">{l s='No filter template found.' d='Modules.Facetedsearch.Admin'}</div>*}
+    {*    {/if}*}
+    {if empty($limit_warning)}
+      <div class="panel-footer">
+        <a class="btn btn-default pull-right" href="{$current_url}&amp;filter_group=0"><i class="process-icon-plus"></i> {l s='Add new' d='Modules.Facetedsearch.Admin'}</a>
+      </div>
+    {/if}
+</div>
+{*----------------------------CUSTOM FILTERS----------------------------*}
+
 <div class="panel">
   <h3><i class="icon-cogs"></i> {l s='Filters templates' d='Modules.Facetedsearch.Admin'}<span class="badge">{$filters_templates|count}</span></h3>
   {if $filters_templates|count > 0}
@@ -264,7 +322,7 @@
   </div>
 
 	<div class="form-group">
-		<label class="control-label col-lg-3">{l s='Default filter template for new categories' d='Modules.Facetedsearch.Admin'}</label>				
+		<label class="control-label col-lg-3">{l s='Default filter template for new categories' d='Modules.Facetedsearch.Admin'}</label>
 		<div class="col-lg-9">
 			<select class="form-control fixed-width-xxl" name="ps_layered_default_category_template" id="ps_layered_default_category_template">
 				<option value="0" {if empty($default_category_template)} selected="selected" {/if}>{l s='None' d='Admin.Global'}</option>
