@@ -601,8 +601,8 @@ class Ps_Facetedsearch extends Module implements WidgetInterface
         }
 
         $title = $filterGroup->id === null
-            ? $this->trans('[NEW] Custom filters group name', [], 'Modules.Facetedsearch.Admin')
-            : $this->trans('[EDIT] Custom filters group name', [], 'Modules.Facetedsearch.Admin');
+            ? $this->trans('Create new custom filters group name', [], 'Modules.Facetedsearch.Admin')
+            : $this->trans('Edit existing custom filters group name', [], 'Modules.Facetedsearch.Admin');
 
         $form = [
             'form' => [
@@ -664,8 +664,8 @@ class Ps_Facetedsearch extends Module implements WidgetInterface
 
     public function renderFilterSubgroupForm (FilterSubgroup $filterSubgroup) {
         $title = $filterSubgroup->id === null
-            ? $this->trans('[NEW] Custom filters subgroup name', [], 'Modules.Facetedsearch.Admin')
-            : $this->trans('[EDIT] Custom filters subgroup name', [], 'Modules.Facetedsearch.Admin');
+            ? $this->trans('Create new custom filters subgroup name', [], 'Modules.Facetedsearch.Admin')
+            : $this->trans('Edit existing custom filters subgroup name', [], 'Modules.Facetedsearch.Admin');
         $form = [
             'form' => [
                 'legend' => [
@@ -693,7 +693,6 @@ class Ps_Facetedsearch extends Module implements WidgetInterface
         $helper->id = $filterSubgroup->id;
         $helper->identifier = FilterSubgroup::$definition['primary'];
 
-        $helper->module = $this;
         $helper->name_controller = $this->name;
         $helper->token = Tools::getAdminTokenLite('AdminModules');
         $helper->submit_action = 'submitCustomFilterSubgroup';
