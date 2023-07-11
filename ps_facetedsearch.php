@@ -644,8 +644,6 @@ class Ps_Facetedsearch extends Module implements WidgetInterface
 
         $helper->name_controller = $this->name;
         $helper->token = Tools::getAdminTokenLite('AdminModules');
-        // Add option to stay on Filter Group page after updating/creating one
-//        $helper->currentIndex = AdminController::$currentIndex . '&' . http_build_query(['configure' => $this->name]);
         $helper->submit_action = 'submitCustomFilterGroup';
         $helper->show_cancel_button = true;
 
@@ -698,7 +696,6 @@ class Ps_Facetedsearch extends Module implements WidgetInterface
         $helper->module = $this;
         $helper->name_controller = $this->name;
         $helper->token = Tools::getAdminTokenLite('AdminModules');
-//        $helper->currentIndex = AdminController::$currentIndex . '&' . http_build_query(['configure' => $this->name, 'filter_group' => $filterSubgroup->id_filter_group, 'filter_subgroup' => $filterSubgroup->id]);
         $helper->submit_action = 'submitCustomFilterSubgroup';
         $helper->show_cancel_button = true;
 
@@ -745,9 +742,6 @@ class Ps_Facetedsearch extends Module implements WidgetInterface
         $id = $this->getCustomFilterModelId($className);
         $object = new $className($id);
         if ($object->id === null && $id !== 0) {
-//            Tools::redirectAdmin($this->context->link->getAdminLink('AdminModules', true, [], [
-//                'configure' => $this->name,
-//            ]));
             $this->redirectAdmin([]);
         }
         return $object;
