@@ -781,15 +781,9 @@ class Ps_Facetedsearch extends Module implements WidgetInterface
 
         if (Tools::isSubmit('submitFilterValues')) {
             $filter_subgroup = $this->checkIfFilterModelExists('FilterSubgroup');
-//            $filter_subgroup_id = $this->getFilterSubgroupId();
-//            $filter_subgroup = new FilterSubgroup($filter_subgroup_id);
-//            $this->checkModelExists($filter_subgroup, $filter_subgroup_id);
 
             // check for filter_subgroup === 0
             if ($filter_subgroup->id === null) {
-//                Tools::redirectAdmin($this->context->link->getAdminLink('AdminModules', true, [], [
-//                    'configure' => $this->name,
-//                ]));
                 $this->redirectAdmin([]);
             }
 
@@ -814,19 +808,12 @@ class Ps_Facetedsearch extends Module implements WidgetInterface
             }
         } elseif (Tools::isSubmit('submitCustomFilterGroup')) {
             $filter_group = $this->checkIfFilterModelExists('FilterGroup');
-//            $filter_group_id = $this->getFilterGroupId();
-//            $filter_group = new FilterGroup($filter_group_id);
-//            $this->checkModelExists($filter_group, $filter_group_id);
 
             $lang_id = $this->context->language->id;
             $filter_group->name[$lang_id] = Tools::getValue('custom_filter_group_name_' . $lang_id);
             $filter_group->type = Tools::getValue('custom_filter_group_type');
 
             if ($filter_group->save(false, false)) {
-//                Tools::redirectAdmin($this->context->link->getAdminLink('AdminModules', true, [], [
-//                    'configure' => $this->name,
-//                    'filter_group' => $filter_group->id,
-//                ]));
                 $this->redirectAdmin(['filter_group' => $filter_group->id]);
             } else {
                 $message .= $this->getSaveFailureMessage();
@@ -834,21 +821,12 @@ class Ps_Facetedsearch extends Module implements WidgetInterface
 
         } elseif (Tools::isSubmit('submitCustomFilterSubgroup')) {
             $filter_group = $this->checkIfFilterModelExists('FilterGroup');
-//            $filter_group_id = $this->getFilterGroupId();
-//            $filter_group = new FilterGroup($filter_group_id);
-//            $this->checkModelExists($filter_group, $filter_group_id);
 
             $filter_subgroup = $this->checkIfFilterModelExists('FilterSubgroup');
-//            $filter_subgroup_id = $this->getFilterSubgroupId();
-//            $filter_subgroup = new FilterSubgroup($filter_subgroup_id);
-//            $this->checkModelExists($filter_subgroup, $filter_subgroup_id);
 
             if ($filter_group->id === null && $filter_subgroup->id !== null) {
                 $filter_group = new FilterGroup($filter_subgroup->id);
             } elseif ($filter_group->id === null && $filter_subgroup->id === null) {
-//                Tools::redirectAdmin($this->context->link->getAdminLink('AdminModules', true, [], [
-//                    'configure' => $this->name,
-//                ]));
                 $this->redirectAdmin([]);
             }
 
@@ -862,11 +840,6 @@ class Ps_Facetedsearch extends Module implements WidgetInterface
             }
 
             if ($filter_subgroup->save(false, false)) {
-//                Tools::redirectAdmin($this->context->link->getAdminLink('AdminModules', true, [], [
-//                    'configure' => $this->name,
-//                    'filter_group' => $filter_subgroup->id_filter_group,
-//                    'filter_subgroup' => $filter_subgroup->id,
-//                ]));
                 $this->redirectAdmin([
                     'filter_group' => $filter_subgroup->id_filter_group,
                     'filter_subgroup' => $filter_subgroup->id,
@@ -879,32 +852,18 @@ class Ps_Facetedsearch extends Module implements WidgetInterface
 
         if (Tools::getValue('filter_subgroup') !== false) {
             $filter_group = $this->checkIfFilterModelExists('FilterGroup');
-//            $filter_group_id = $this->getFilterGroupId();
-//            $filter_group = new FilterGroup($filter_group_id);
-//            $this->checkModelExists($filter_group, $filter_group_id);
 
             $filter_subgroup = $this->checkIfFilterModelExists('FilterSubgroup');
-//            $filter_subgroup_id = $this->getFilterSubgroupId();
-//            $filter_subgroup = new FilterSubgroup($filter_subgroup_id);
-//            $this->checkModelExists($filter_subgroup, $filter_subgroup_id);
 
-            // If no filter group is specified, user can be redirected to proper filter group as long as
-            // given subgroup exists
+            // If no filter group is specified, user can be redirected to proper filter group
+            // as long as given subgroup exists
             if ($filter_group->id === null && $filter_subgroup->id !== null) {
-//                Tools::redirectAdmin($this->context->link->getAdminLink('AdminModules', true, [], [
-//                    'configure' => $this->name,
-//                    'filter_group' => $filter_subgroup->id_filter_group,
-//                    'filter_subgroup' => $filter_subgroup->id,
-//                ]));
                 $this->redirectAdmin([
                     'filter_group' => $filter_subgroup->id_filter_group,
                     'filter_subgroup' => $filter_subgroup->id,
                 ]);
             // if neither filter group nor subgroup exists (id === 0), then redirect to module homepage
             } elseif ($filter_group->id === null && $filter_subgroup->id === null) {
-//                Tools::redirectAdmin($this->context->link->getAdminLink('AdminModules', true, [], [
-//                    'configure' => $this->name,
-//                ]));
                 $this->redirectAdmin([]);
             }
 
@@ -928,7 +887,7 @@ class Ps_Facetedsearch extends Module implements WidgetInterface
                     $attribute_grouped[$attribute['attribute_group']][] = $attribute;
                 }
 
-                // Sort by name and then by selected
+                // Sort by name and then by 'selected'
                 foreach ($attribute_grouped as $key => $values) {
                     usort($values, fn ($a, $b) => $a['name'] <=> $b['name']);
                     usort($values, fn ($a, $b) => $b['selected'] <=> $a['selected']);
