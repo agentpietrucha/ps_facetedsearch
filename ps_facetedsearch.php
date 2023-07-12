@@ -1194,6 +1194,8 @@ class Ps_Facetedsearch extends Module implements WidgetInterface
         $features = $this->getAvailableFeatures();
         $attributeGroups = $this->getAvailableAttributes();
 
+        $customFitlers = $this->getAvailableCustomFilters();
+
         // Get available controllers
         $controller_options = $this->getSupportedControllers();
 
@@ -1252,6 +1254,7 @@ class Ps_Facetedsearch extends Module implements WidgetInterface
             'default_filters' => $this->getDefaultFilters(),
             'categories_tree' => $treeCategoriesHelper->render(),
             'controller_options' => $controller_options,
+            'custom_filters' => $customFitlers,
         ]);
 
         // We are using two separate templates depending on context
@@ -1282,6 +1285,12 @@ class Ps_Facetedsearch extends Module implements WidgetInterface
     private function query($sqlQuery)
     {
         return $this->getDatabase()->query($sqlQuery);
+    }
+
+    private function getAvailableCustomFilters()
+    {
+        $tmp = new PrestaShopCollection('FilterGroup', $this->context->language->id);
+        return $tmp->getResults();
     }
 
     /**
@@ -1672,6 +1681,8 @@ VALUES(' . $last_id . ', ' . (int) $idShop . ')');
                             } elseif (substr($key, 0, 23) == 'layered_selection_feat_') {
                                 $sqlInsert .= '(' . (int) $idCategory . ', \'' . $controller . '\', ' . (int) $idShop . ', ' . (int) str_replace('layered_selection_feat_', '', $key) . ',
     \'id_feature\',' . (int) $n . ', ' . (int) $limit . ', ' . (int) $type . '),';
+                            } elseif (substr($key, 0, 32) === 'layered_selection_custom_filter_') {
+                                $sqlInsert .= '(' . (int) $idCategory . ', \'' . $controller . '\', ' . (int) $idShop . ', ' . (int) str_replace('layered_selection_custom_filter_', '', $key) . ', \'id_custom_filter\',' . (int) $n . ', ' . (int) $limit . ', ' . (int) $type . '),';
                             }
 
                             ++$nbSqlValuesToInsert;
