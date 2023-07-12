@@ -44,4 +44,10 @@
       <a class="btn btn-default pull-right" href="{$current_url}&amp;filter_group={$filter_group_id}&amp;filter_subgroup=0"><i class="process-icon-plus"></i> {l s='Add new' d='Modules.Facetedsearch.Admin'}</a>
     </div>
   </div>
+  <div class="panel">
+    <a href="{$back_url}" class="btn btn-default" name="submitFilterValues" type="submit">
+      <i class="material-icons align-middle">arrow_back_ios</i>
+      <span class="align-middle">{l s='Go back' d='Admin.Actions'}</span>
+    </a>
+  </div>
 {/if}

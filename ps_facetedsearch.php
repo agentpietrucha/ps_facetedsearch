@@ -645,7 +645,7 @@ class Ps_Facetedsearch extends Module implements WidgetInterface
         $helper->name_controller = $this->name;
         $helper->token = Tools::getAdminTokenLite('AdminModules');
         $helper->submit_action = 'submitCustomFilterGroup';
-        $helper->show_cancel_button = true;
+        $helper->show_cancel_button = $filterGroup->id === null;
 
         $lang_default = new Language((int) Configuration::get('PS_LANG_DEFAULT'));
         $helper->default_form_language = $lang_default->id;
@@ -696,7 +696,7 @@ class Ps_Facetedsearch extends Module implements WidgetInterface
         $helper->name_controller = $this->name;
         $helper->token = Tools::getAdminTokenLite('AdminModules');
         $helper->submit_action = 'submitCustomFilterSubgroup';
-        $helper->show_cancel_button = true;
+        $helper->show_cancel_button = $filterSubgroup->id === null;
 
         $lang_default = new Language((int) Configuration::get('PS_LANG_DEFAULT'));
         $helper->default_form_language = $lang_default->id;
@@ -774,6 +774,8 @@ class Ps_Facetedsearch extends Module implements WidgetInterface
     {
         global $cookie;
         $message = '';
+
+        $this->context->controller->addCSS($this->_path . 'views/dist/back.css');
 
         if (Tools::getValue('delete_custom_filter')) {
             if ($this->getCustomFilterModelId('FilterGroup')) {
@@ -929,6 +931,10 @@ class Ps_Facetedsearch extends Module implements WidgetInterface
 
                 $this->context->smarty->assign([
                     'attribute_grouped' => $attribute_grouped,
+                    'back_url' => $this->context->link->getAdminLink('AdminModules', true, [], [
+                        'filter_group' => $filter_subgroup->id_filter_group,
+                        'configure' => $this->name
+                    ])
                 ]);
 
                 $html .= $this->display(__FILE__, 'views/templates/admin/custom_filters_subgroups.tpl');
@@ -955,6 +961,9 @@ class Ps_Facetedsearch extends Module implements WidgetInterface
                     'current_url' => $this->context->link->getAdminLink('AdminModules') . '&configure=ps_facetedsearch&tab_module=front_office_features&module_name=ps_facetedsearch',
                     'filter_subgroups' => $subgroups,
                     'filter_group_id' => $filter_group->id,
+                    'back_url' => $this->context->link->getAdminLink('AdminModules', true, [], [
+                        'configure' => $this->name
+                    ])
                 ]);
             }
 
@@ -1115,7 +1124,6 @@ class Ps_Facetedsearch extends Module implements WidgetInterface
             $this->context->controller->addJS(_PS_JS_DIR_ . 'jquery/plugins/jquery.sortable.js');
         }
         $this->context->controller->addJS($this->_path . 'views/dist/back.js');
-        $this->context->controller->addCSS($this->_path . 'views/dist/back.css');
 
         // Render screen for adding new template
         if (Tools::getValue('add_new_filters_template')) {
