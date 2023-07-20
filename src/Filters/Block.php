@@ -1054,7 +1054,10 @@ class Block
                 }
             }
         }
-        // ADD FILTERS SORTING (DISPLAY SORT)
+        // Sort custom filter subgroups alphabetically
+        foreach ($customFiltersBlock as $block) {
+            uasort($block['values'], fn($a, $b) => strnatcasecmp($a['name'], $b['name']));
+        }
         return $customFiltersBlock;
     }
 }
