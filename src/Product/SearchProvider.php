@@ -190,18 +190,18 @@ class SearchProvider implements FacetsRendererInterface, ProductSearchProviderIn
         );
 
         // Let's try to get filters from cache, if the controller is supported
-        $filterHash = $this->generateCacheKeyForQuery($query, $facetedSearchFilters);
-        if ($this->module->shouldCacheController($query->getQueryType())) {
-            $filterBlock = $filterBlockSearch->getFromCache($filterHash);
-        }
+//        $filterHash = $this->generateCacheKeyForQuery($query, $facetedSearchFilters);
+//        if ($this->module->shouldCacheController($query->getQueryType())) {
+//            $filterBlock = $filterBlockSearch->getFromCache($filterHash);
+//        }
 
         // If not, we regenerate it and cache it
-        if (empty($filterBlock)) {
+//        if (empty($filterBlock)) {
             $filterBlock = $filterBlockSearch->getFilterBlock($productsAndCount['count'], $facetedSearchFilters);
-            if ($this->module->shouldCacheController($query->getQueryType())) {
-                $filterBlockSearch->insertIntoCache($filterHash, $filterBlock);
-            }
-        }
+//            if ($this->module->shouldCacheController($query->getQueryType())) {
+//                $filterBlockSearch->insertIntoCache($filterHash, $filterBlock);
+//            }
+//        }
 
         $facets = $this->filtersConverter->getFacetsFromFilterBlocks(
             $filterBlock['filters']
@@ -507,6 +507,10 @@ class SearchProvider implements FacetsRendererInterface, ProductSearchProviderIn
     private function hideUselessFacets(array $facets, $totalProducts)
     {
         foreach ($facets as $facet) {
+            if ($facet->getType() === 'custom_filter') {
+                continue;
+            }
+
             if ($facet->getWidgetType() === 'slider') {
                 $facet->setDisplayed(
                     $facet->getProperty('min') != $facet->getProperty('max')

@@ -29,6 +29,7 @@ use Group;
 use Manufacturer;
 use PrestaShop\Module\FacetedSearch\Adapter\InterfaceAdapter;
 use PrestaShop\Module\FacetedSearch\Product\Search;
+use PrestaShop\PrestaShop\Adapter\Entity\PrestaShopCollection;
 use PrestaShop\PrestaShop\Core\Localization\Locale;
 use PrestaShop\PrestaShop\Core\Localization\Specification\NumberSymbolList;
 use PrestaShop\PrestaShop\Core\Product\Search\ProductSearchQuery;
@@ -122,6 +123,13 @@ class Block
         // Get filters configured for the current query
         $filters = $this->provider->getFiltersForQuery($this->query, $idShop);
 
+//        $filters[] = [
+//          'type' => 'id_custom_filter',
+//          'id_value' => 10,
+//          'filter_show_limit' => 0,
+//          'filter_type' => 0,
+//        ];
+
         $filterBlocks = [];
         // iterate through each filter, and the get corresponding filter block
         foreach ($filters as $filter) {
@@ -145,6 +153,9 @@ class Block
                     $filterBlocks =
                         array_merge($filterBlocks, $this->getAttributesBlock($filter, $selectedFilters, $idLang));
                     break;
+                case 'id_custom_filter':
+                    $filterBlocks =
+                        array_merge($filterBlocks, $this->getCustomFiltersBlock($filter, $selectedFilters, $idLang));
                 case 'id_feature':
                     $filterBlocks =
                         array_merge($filterBlocks, $this->getFeaturesBlock($filter, $selectedFilters, $idLang));
@@ -992,5 +1003,58 @@ class Block
             'currencyCode' => $currency->iso_code,
             'currencySymbol' => $currency->sign,
         ];
+    }
+
+    /**
+     * TBD
+     *
+     * @param array $filter
+     * @param array $selectedFilters
+     * @param int $idLang
+     *
+     * @return array
+     */
+    private function getCustomFiltersBlock($filter, $selectedFilters, $idLang)
+    {
+        $customFiltersBlock = [];
+        $idFilterGroup = $filter['id_value'];
+
+        $filterGroup = (new \PrestaShopCollection('FilterGroup', $idLang))
+            ->where('id_filter_group', '=', $idFilterGroup)
+            ->getFirst();
+        $filterSubgroups = (new \PrestaShopCollection('FilterSubgroup', $idLang))
+            ->where('id_filter_group', '=', $idFilterGroup)
+            ->getResults();
+
+        $customFiltersBlock[$idFilterGroup] = [
+            'type_lite' => 'id_custom_filter',
+            'type' => 'id_custom_filter',
+            'id_key' => $idFilterGroup,
+            'name' => $filterGroup->name,
+            'values' => [],
+            'meta_title' => $filterGroup->name,
+            'filter_show_limit' => (int) $filter['filter_show_limit'],
+            'filter_type' => $filter['filter_type'],
+        ];
+
+        foreach ($filterSubgroups as $filterSubgroup) {
+            $idFilterSubgroup = $filterSubgroup->id;
+
+            $customFiltersBlock[$idFilterGroup]['values'][$idFilterSubgroup] = [
+                'name' => $filterSubgroup->name,
+                'nbr' => null,
+                'meta_title' => $filterSubgroup->name
+            ];
+
+            if (array_key_exists('id_filter_group', $selectedFilters)) {
+                foreach ($selectedFilters['id_filter_group'] as $selectedFilter) {
+                    if (in_array($idFilterGroup, $selectedFilter)) {
+                        $customFiltersBlock[$idFilterGroup]['values'][$idFilterSubgroup]['checked'] = true;
+                    }
+                }
+            }
+        }
+        // ADD FILTERS SORTING (DISPLAY SORT)
+        return $customFiltersBlock;
     }
 }
