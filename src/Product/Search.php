@@ -165,6 +165,26 @@ class Search
                     }
                     break;
 
+                case 'id_custom_filter':
+                    $idLang = $this->context->language->id;
+                    $filterSubgroupIdsArray = [];
+                    foreach ($filterValues as $filterSubgroupIds) {
+                        $filterSubgroupIdsArray = array_merge($filterSubgroupIdsArray, $filterSubgroupIds);
+                    }
+                    $customFilterValues = (new \PrestaShopCollection('FilterValue', $idLang))
+                        ->where('id_filter_subgroup', 'in', $filterSubgroupIdsArray)
+                        ->getResults();
+
+                    $attributesIds = [];
+                    foreach ($customFilterValues as $customFilterValue) {
+                        $attributesIds[] = $customFilterValue->id_attribute;
+                    }
+                    $this->getSearchAdapter()->addOperationsFilter(
+                      'custom_filter_values',
+                      [[['id_attribute', $attributesIds]]]
+                    );
+                    break;
+
                 case 'category':
                     $this->addFilter('id_category', $filterValues);
                     break;
