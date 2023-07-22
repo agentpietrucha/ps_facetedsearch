@@ -1046,9 +1046,9 @@ class Block
                 'meta_title' => $filterSubgroup->name
             ];
 
-            if (array_key_exists('id_filter_group', $selectedFilters)) {
-                foreach ($selectedFilters['id_filter_group'] as $selectedFilter) {
-                    if (in_array($idFilterGroup, $selectedFilter)) {
+            if (array_key_exists('id_custom_filter', $selectedFilters)) {
+                foreach ($selectedFilters['id_custom_filter'] as $selectedFilter) {
+                    if (in_array($idFilterSubgroup, $selectedFilter)) {
                         $customFiltersBlock[$idFilterGroup]['values'][$idFilterSubgroup]['checked'] = true;
                     }
                 }
