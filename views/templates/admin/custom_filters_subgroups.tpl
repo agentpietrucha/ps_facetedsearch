@@ -27,14 +27,14 @@
         </table>
       {/foreach}
       <div class="panel-footer">
-        <button class="btn btn-default pull-right" name="submitFilterValues" type="submit"><i class="process-icon-save"></i>
+        <button class="btn btn-default pull-right" name="{$submit_action}" type="submit"><i class="process-icon-save"></i>
           <span>{l s='Save' d='Admin.Actions'}</span>
         </button>
       </div>
     </div>
   </form>
   <div class="panel">
-    <a href="{$back_url}" class="btn btn-default" name="submitFilterValues" type="submit">
+    <a href="{$back_url}" class="btn btn-default">
       <i class="material-icons align-middle">arrow_back_ios</i>
       <span class="align-middle">{l s='Go back' d='Admin.Actions'}</span>
     </a>

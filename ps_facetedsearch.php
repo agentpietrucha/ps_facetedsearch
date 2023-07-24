@@ -637,14 +637,16 @@ class Ps_Facetedsearch extends Module implements WidgetInterface
             ],
         ];
 
+        $primaryKey = FilterGroup::$definition['primary'];
+
         $helper = new HelperForm();
 
         $helper->id = $filterGroup->id;
-        $helper->identifier = FilterGroup::$definition['primary'];
+        $helper->identifier = $primaryKey;
 
         $helper->name_controller = $this->name;
         $helper->token = Tools::getAdminTokenLite('AdminModules');
-        $helper->submit_action = 'submitCustomFilterGroup';
+        $helper->submit_action = 'submit_' . $primaryKey;
         $helper->show_cancel_button = $filterGroup->id === null;
 
         $lang_default = new Language((int) Configuration::get('PS_LANG_DEFAULT'));
@@ -689,14 +691,16 @@ class Ps_Facetedsearch extends Module implements WidgetInterface
             ],
         ];
 
+        $primaryKey = FilterSubgroup::$definition['primary'];
+
         $helper = new HelperForm();
 
         $helper->id = $filterSubgroup->id;
-        $helper->identifier = FilterSubgroup::$definition['primary'];
+        $helper->identifier = $primaryKey;
 
         $helper->name_controller = $this->name;
         $helper->token = Tools::getAdminTokenLite('AdminModules');
-        $helper->submit_action = 'submitCustomFilterSubgroup';
+        $helper->submit_action = 'submit_' . $primaryKey;
         $helper->show_cancel_button = $filterSubgroup->id === null;
 
         $lang_default = new Language((int) Configuration::get('PS_LANG_DEFAULT'));
@@ -730,6 +734,11 @@ class Ps_Facetedsearch extends Module implements WidgetInterface
             'DELETE FROM ' . _DB_PREFIX_ . 'filter_value
                 WHERE id_filter_subgroup = ' . $id
         );
+    }
+
+    private function checkSubmit(string $className)
+    {
+        return Tools::isSubmit('submit_' . $className::$definition['primary']);
     }
 
     /**
@@ -804,7 +813,7 @@ class Ps_Facetedsearch extends Module implements WidgetInterface
             }
         }
 
-        if (Tools::isSubmit('submitFilterValues')) {
+        if ($this->checkSubmit('FilterValue')) {
             $filter_subgroup = $this->checkIfFilterModelExists('FilterSubgroup');
 
             // check for filter_subgroup === 0
@@ -832,7 +841,7 @@ class Ps_Facetedsearch extends Module implements WidgetInterface
                     : $this->getSaveFailureMessage($this->trans('Adding new attributes to filter value failed', [], 'Modules.Facetedsearch.Admin'));
             }
 
-        } elseif (Tools::isSubmit('submitCustomFilterGroup')) {
+        } elseif ($this->checkSubmit('FilterGroup')) {
             $filter_group = $this->checkIfFilterModelExists('FilterGroup');
 
             $lang_id = $this->context->language->id;
@@ -848,7 +857,7 @@ class Ps_Facetedsearch extends Module implements WidgetInterface
                 );
             }
 
-        } elseif (Tools::isSubmit('submitCustomFilterSubgroup')) {
+        } elseif ($this->checkSubmit('FilterSubgroup')) {
             $filter_group = $this->checkIfFilterModelExists('FilterGroup');
 
             $filter_subgroup = $this->checkIfFilterModelExists('FilterSubgroup');
@@ -934,6 +943,7 @@ class Ps_Facetedsearch extends Module implements WidgetInterface
                 }
 
                 $this->context->smarty->assign([
+                    'submit_action' => 'submit_' . FilterValue::$definition['primary'],
                     'attribute_grouped' => $attribute_grouped,
                     'back_url' => $this->context->link->getAdminLink('AdminModules', true, [], [
                         'filter_group' => $filter_subgroup->id_filter_group,
