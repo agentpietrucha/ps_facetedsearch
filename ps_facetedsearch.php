@@ -596,7 +596,7 @@ class Ps_Facetedsearch extends Module implements WidgetInterface
         foreach (FilterGroup::TYPES as $type) {
             $select_values[] = [
                 'id' => $type['id'],
-                'name' => $type['name'],
+                'name' => $this->trans($type['name'], [], 'Modules.Facetedsearch.Admin'),
             ];
         }
 
@@ -666,6 +666,7 @@ class Ps_Facetedsearch extends Module implements WidgetInterface
         $title = $filterSubgroup->id === null
             ? $this->trans('Create new custom filters subgroup name', [], 'Modules.Facetedsearch.Admin')
             : $this->trans('Edit existing custom filters subgroup name', [], 'Modules.Facetedsearch.Admin');
+
         $form = [
             'form' => [
                 'legend' => [
