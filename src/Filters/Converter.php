@@ -38,6 +38,8 @@ class Converter
     const WIDGET_TYPE_DROPDOWN = 2;
     const WIDGET_TYPE_SLIDER = 3;
 
+    const TYPE_CUSTOM_FILTER = 'id_custom_filter';
+
     const TYPE_ATTRIBUTE_GROUP = 'id_attribute_group';
     const TYPE_AVAILABILITY = 'availability';
     const TYPE_CATEGORY = 'category';
@@ -118,6 +120,7 @@ class Converter
                 case self::TYPE_AVAILABILITY:
                 case self::TYPE_ATTRIBUTE_GROUP:
                 case self::TYPE_FEATURE:
+                case self::TYPE_CUSTOM_FILTER:
                     $type = $filterBlock['type'];
                     if ($filterBlock['type'] == self::TYPE_ATTRIBUTE_GROUP) {
                         $type = 'attribute_group';
@@ -129,6 +132,12 @@ class Converter
                         $type = 'feature';
                         $facet->setProperty(self::TYPE_FEATURE, $filterBlock['id_key']);
                         if (isset($filterBlock['url_name'])) {
+                            $facet->setProperty(self::PROPERTY_URL_NAME, $filterBlock['url_name']);
+                        }
+                    } elseif ($filterBlock['type'] == self::TYPE_CUSTOM_FILTER) {
+                        $type = 'custom_filter';
+                        $facet->setProperty(self::TYPE_CUSTOM_FILTER, $filterBlock['id_key']);
+                        if (isset($filterBlocks['url_name'])) {
                             $facet->setProperty(self::PROPERTY_URL_NAME, $filterBlock['url_name']);
                         }
                     }
@@ -398,6 +407,33 @@ class Converter
                         }
                     }
                     break;
+                case self::TYPE_CUSTOM_FILTER:
+                    $filterGroups = (new \PrestaShopCollection('FilterGroup', $idLang))
+                        ->getResults();
+                    foreach ($filterGroups as $filterGroup) {
+                        if ($filter['id_value'] !== $filterGroup->id) {
+                            continue;
+                        }
+
+                         if (isset($facetAndFiltersLabels[$filterGroup->name])) {
+                            $filterLabels = $facetAndFiltersLabels[$filterGroup->name];
+                         } else {
+                             break;
+                         }
+
+                         $filterSubgroups = (new \PrestaShopCollection('FilterSubgroup', $idLang))
+                             ->where('id_filter_group', '=', $filterGroup->id)
+                             ->getResults();
+
+                         foreach ($filterSubgroups as $filterSubgroup) {
+                            if (in_array($filterSubgroup->name, $filterLabels)) {
+                                $searchFilters['id_custom_filter'][$filterGroup->id][] = $filterSubgroup->id;
+                            }
+                         }
+                    }
+
+                    break;
+
                 case self::TYPE_PRICE:
                 case self::TYPE_WEIGHT:
                     if (isset($facetAndFiltersLabels[$filterLabel])) {
@@ -493,6 +529,9 @@ class Converter
     {
         $count = 0;
         foreach ($filters as $filter) {
+            if ($filter->getType() === 'custom_filter') {
+                continue;
+            }
             if ($filter->getMagnitude() === 0
                 || ($showLimit > 0 && $count >= $showLimit)
             ) {
