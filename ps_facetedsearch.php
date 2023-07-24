@@ -735,9 +735,11 @@ class Ps_Facetedsearch extends Module implements WidgetInterface
     /**
      * @param class-string $className
      */
-    private function getCustomFilterModelId(string $className)
+    private function getCustomFilterModelId(string $className, int|bool $defaultValue = 0)
     {
-        return (int) Tools::getValue($className::$definition['table'], 0);
+        return gettype($defaultValue) === 'boolean'
+            ? Tools::getValue($className::$definition['table'], $defaultValue)
+            : (int) Tools::getValue($className::$definition['table'], $defaultValue);
     }
 
     /**
@@ -880,13 +882,14 @@ class Ps_Facetedsearch extends Module implements WidgetInterface
         }
 
 
-        if (Tools::getValue('filter_subgroup') !== false) {
+        if ($this->getCustomFilterModelId('FilterSubgroup', false) !== false) {
             if (isset($_SESSION['submitCustomFilterSubgroup'])) {
                 unset($_SESSION['submitCustomFilterSubgroup']);
                 $message .= $this->getSaveSuccessMessage(
                     $this->trans('Filter subgroup operation succeed', [], 'Modules.Facetedsearch.Admin')
                 );
             }
+
             $filter_group = $this->checkIfFilterModelExists('FilterGroup');
 
             $filter_subgroup = $this->checkIfFilterModelExists('FilterSubgroup');
@@ -943,14 +946,17 @@ class Ps_Facetedsearch extends Module implements WidgetInterface
 
             return $message . $html;
 
-        } elseif (Tools::getValue('filter_group') !== false) {
+        } elseif ($this->getCustomFilterModelId('FilterGroup', false) !== false) {
             if (isset($_SESSION['submitCustomFilterGroup'])) {
                 unset($_SESSION['submitCustomFilterGroup']);
                 $message .= $this->getSaveSuccessMessage(
                     $this->trans('Filter group operation succeed', [], 'Modules.Facetedsearch.Admin')
                 );
             }
+
             $filter_group = $this->checkIfFilterModelExists('FilterGroup');
+
+            $html = $this->renderFilterGroupForm($filter_group);
 
             if ($filter_group->id) {
                 $subgroups = (new PrestaShopCollection('FilterSubgroup', $this->context->language->id))
@@ -966,10 +972,10 @@ class Ps_Facetedsearch extends Module implements WidgetInterface
                         'configure' => $this->name
                     ])
                 ]);
+
+                $html .= $this->display(__FILE__, 'views/templates/admin/custom_filters_group.tpl');
             }
 
-            $html = $this->renderFilterGroupForm($filter_group);
-            $html .= $this->display(__FILE__, 'views/templates/admin/custom_filters_group.tpl');
 
             return $message . $html;
         }
