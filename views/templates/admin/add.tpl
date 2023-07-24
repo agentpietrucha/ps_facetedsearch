@@ -222,6 +222,7 @@
                 </div>
               </li>
 
+{*----------------------------CUSTOM FILTERS----------------------------*}
               {if $custom_filters|count > 0}
                 {foreach $custom_filters as $custom_filter}
                     <li class="filter_list_item row" draggable="true">
@@ -244,15 +245,10 @@
                           }
                         </span>
                       </div>
-{*                      <div class="col-lg-3 pull-right">*}
-{*                        <label class="control-label col-lg-6">{l s='Filter result limit:' d='Modules.Facetedsearch.Admin'}</label>*}
-{*                        <div class="col-lg-6">*}
-{*                            {call get_limit_select element="layered_selection_ag_DUPA"}*}
-{*                        </div>*}
-{*                      </div>*}
                     </li>
                 {/foreach}
               {/if}
+{*----------------------------CUSTOM FILTERS----------------------------*}
 
               {if $attribute_groups|count > 0}
                 {foreach $attribute_groups as $attribute_group}

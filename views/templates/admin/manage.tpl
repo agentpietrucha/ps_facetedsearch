@@ -51,7 +51,6 @@
 {*----------------------------CUSTOM FILTERS----------------------------*}
 <div class="panel">
   <h3><i class="icon-cogs"></i> {l s='Custom Filters Groups' d='Modules.Facetedsearch.Admin'}<span class="badge">{$filter_groups|count}</span></h3>
-    {*    {if count($filter_groups) > 0}*}
   <div class="row">
     <table class="table">
       <thead>
@@ -92,13 +91,7 @@
       {/foreach}
       </tbody>
     </table>
-    <div class="clearfix">&nbsp;</div>
   </div>
-    {if empty($limit_warning)}
-      <div class="panel-footer">
-        <a class="btn btn-default pull-right" href="{$current_url}&amp;filter_group=0"><i class="process-icon-plus"></i> {l s='Add new' d='Modules.Facetedsearch.Admin'}</a>
-      </div>
-    {/if}
 </div>
 {*----------------------------CUSTOM FILTERS----------------------------*}
 
