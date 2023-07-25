@@ -215,6 +215,9 @@ class Ps_Facetedsearch extends Module implements WidgetInterface
 
             $this->psLayeredFullTree = 1;
 
+            if (!$this->createCustomFiltersTables()) {
+                return false;
+            }
             $this->rebuildLayeredStructure();
             $this->buildLayeredCategories();
 
@@ -263,7 +266,7 @@ class Ps_Facetedsearch extends Module implements WidgetInterface
         $this->getDatabase()->execute('DROP TABLE IF EXISTS ' . _DB_PREFIX_ . 'layered_price_index');
         $this->getDatabase()->execute('DROP TABLE IF EXISTS ' . _DB_PREFIX_ . 'layered_product_attribute');
 
-        return parent::uninstall();
+        return $this->dropCustomFiltersTables() && parent::uninstall();
     }
 
     /**
@@ -1720,6 +1723,83 @@ VALUES(' . $last_id . ', ' . (int) $idShop . ')');
         if ($nbSqlValuesToInsert) {
             $this->getDatabase()->execute($sqlInsertPrefix . rtrim($sqlInsert, ','));
         }
+    }
+
+    private function createCustomFiltersTables(): bool
+    {
+        // custom filter group (ps_filter_group)
+        $result = $this->getDatabase()->execute(
+            'CREATE TABLE IF NOT EXISTS `' . _DB_PREFIX_ . 'filter_group` (
+            `id_filter_group` INT AUTO_INCREMENT PRIMARY KEY,
+            `type` ENUM(\'text\', \'color\') DEFAULT \'text\'
+            ) ENGINE=' . _MYSQL_ENGINE_ . ' DEFAULT CHARSET=utf8;'
+        );
+
+        $result &= $this->getDatabase()->execute(
+            'CREATE TABLE IF NOT EXISTS `' . _DB_PREFIX_ . 'filter_group_lang` (
+            `id_filter_group` INT,
+            `id_lang` INT NOT NULL,
+            `name` varchar(128) NOT NULL,
+            CONSTRAINT `pk_ps_filter_group_lang`
+            PRIMARY KEY (`id_filter_group`, `id_lang`),
+            CONSTRAINT `fk_lang_filter_group`
+            FOREIGN KEY (`id_filter_group`) REFERENCES `' . _DB_PREFIX_ . 'filter_group` (`id_filter_group`)
+            ON DELETE CASCADE) ENGINE=' . _MYSQL_ENGINE_ . ' DEFAULT CHARSET=utf8;'
+        );
+
+        // custom filter subgroup (ps_filter_subgroup)
+        $result &= $this->getDatabase()->execute(
+            'CREATE TABLE IF NOT EXISTS `' . _DB_PREFIX_ . 'filter_subgroup` (
+            `id_filter_subgroup` INT AUTO_INCREMENT PRIMARY KEY,
+            `id_filter_group` INT,
+            `position` INT NOT NULL,
+            CONSTRAINT `fk_filter_subgroup_filter_group`
+            FOREIGN KEY (`id_filter_group`) REFERENCES `' . _DB_PREFIX_ . 'filter_group` (`id_filter_group`)
+            ON DELETE CASCADE) ENGINE=' . _MYSQL_ENGINE_ . ' DEFAULT CHARSET=utf8;'
+        );
+
+        $result &= $this->getDatabase()->execute(
+            'CREATE TABLE IF NOT EXISTS `' . _DB_PREFIX_ . 'filter_subgroup_lang` (
+          `id_filter_subgroup` INT,
+          `id_lang` INT NOT NULL,
+          `name` VARCHAR(128) NOT NULL,
+          CONSTRAINT `pk_ps_filter_subgroup_lang`
+          PRIMARY KEY (`id_filter_subgroup`, `id_lang`),
+          CONSTRAINT `fk_lang_filter_subgroup`
+          FOREIGN KEY (`id_filter_subgroup`) REFERENCES `' . _DB_PREFIX_ . 'filter_subgroup` (`id_filter_subgroup`)
+          ON DELETE CASCADE) ENGINE=' . _MYSQL_ENGINE_ . ' DEFAULT CHARSET=utf8;'
+        );
+
+        // custom filter value (ps_filter_value)
+        $result &= $this->getDatabase()->execute(
+            'CREATE TABLE IF NOT EXISTS `' . _DB_PREFIX_ . 'filter_value` (
+            `id_filter_value` INT AUTO_INCREMENT PRIMARY KEY,
+            `id_filter_subgroup` INT,
+            `id_attribute` INT,
+            `id_attribute_group` INT,
+            CONSTRAINT `fk_filter_value_filter_subgroup`
+            FOREIGN KEY (`id_filter_subgroup`) REFERENCES `' . _DB_PREFIX_ . 'filter_subgroup` (`id_filter_subgroup`)
+            ON DELETE CASCADE,
+            CONSTRAINT `fk_filter_value_attribute`
+            FOREIGN KEY (`id_attribute`) REFERENCES `' . _DB_PREFIX_ . 'attribute` (`id_attribute`)
+            ON DELETE CASCADE,
+            CONSTRAINT `fk_filter_value_attribute_group`
+            FOREIGN KEY (`id_attribute_group`) REFERENCES `' . _DB_PREFIX_ . 'attribute_group` (`id_attribute_group`)
+            ON DELETE CASCADE) ENGINE=' . _MYSQL_ENGINE_ . ' DEFAULT CHARSET=utf8;'
+        );
+
+        return $result;
+    }
+
+    private function dropCustomFiltersTables(): bool
+    {
+        $result = $this->getDatabase()->execute('DROP TABLE IF EXISTS `' . _DB_PREFIX_ . 'filter_value`');
+        $result &= $this->getDatabase()->execute('DROP TABLE IF EXISTS `' . _DB_PREFIX_ . 'filter_subgroup_lang`');
+        $result &= $this->getDatabase()->execute('DROP TABLE IF EXISTS `' . _DB_PREFIX_ . 'filter_subgroup`');
+        $result &= $this->getDatabase()->execute('DROP TABLE IF EXISTS `' . _DB_PREFIX_ . 'filter_group_lang`');
+        $result &= $this->getDatabase()->execute('DROP TABLE IF EXISTS `' . _DB_PREFIX_ . 'filter_group`');
+
+        return $result;
     }
 
     /**
