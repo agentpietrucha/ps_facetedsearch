@@ -215,11 +215,11 @@ class Ps_Facetedsearch extends Module implements WidgetInterface
 
             $this->psLayeredFullTree = 1;
 
+            $this->rebuildLayeredStructure();
+            $this->buildLayeredCategories();
             if (!$this->createCustomFiltersTables()) {
                 return false;
             }
-            $this->rebuildLayeredStructure();
-            $this->buildLayeredCategories();
 
             $productsCount = $this->getDatabase()->getValue('SELECT COUNT(*) FROM `' . _DB_PREFIX_ . 'product`');
 
@@ -1786,6 +1786,11 @@ VALUES(' . $last_id . ', ' . (int) $idShop . ')');
             CONSTRAINT `fk_filter_value_attribute_group`
             FOREIGN KEY (`id_attribute_group`) REFERENCES `' . _DB_PREFIX_ . 'attribute_group` (`id_attribute_group`)
             ON DELETE CASCADE) ENGINE=' . _MYSQL_ENGINE_ . ' DEFAULT CHARSET=utf8;'
+        );
+
+        $result &= $this->getDatabase()->execute(
+            'ALTER TABLE `' . _DB_PREFIX_ . 'layered_category`
+            MODIFY COLUMN `type` ENUM ((\'category\', \'id_custom_filter\', \'id_feature\', \'id_attribute_group\', \'availability\', \'condition\', \'manufacturer\', \'weight\', \'price\') NOT NULL)'
         );
 
         return $result;
