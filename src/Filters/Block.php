@@ -123,13 +123,6 @@ class Block
         // Get filters configured for the current query
         $filters = $this->provider->getFiltersForQuery($this->query, $idShop);
 
-//        $filters[] = [
-//          'type' => 'id_custom_filter',
-//          'id_value' => 10,
-//          'filter_show_limit' => 0,
-//          'filter_type' => 0,
-//        ];
-
         $filterBlocks = [];
         // iterate through each filter, and the get corresponding filter block
         foreach ($filters as $filter) {
@@ -1006,7 +999,7 @@ class Block
     }
 
     /**
-     * TBD
+     * Get the attributes filter block
      *
      * @param array $filter
      * @param array $selectedFilters
