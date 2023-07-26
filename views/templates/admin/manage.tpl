@@ -92,6 +92,9 @@
       </tbody>
     </table>
   </div>
+  <div class="panel-footer">
+    <a class="btn btn-default pull-right" href="{$current_url}&amp;filter_group=0"><i class="process-icon-plus"></i> {l s='Add new' d='Modules.Facetedsearch.Admin'}</a>
+  </div>
 </div>
 {*----------------------------CUSTOM FILTERS----------------------------*}
 
