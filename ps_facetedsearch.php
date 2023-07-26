@@ -732,6 +732,21 @@ class Ps_Facetedsearch extends Module implements WidgetInterface
                 </div>";
     }
 
+    private function checkSessionMessage(string $className): bool
+    {
+        $key = 'submit_' . $className::$definition['table'];
+        if (isset($_SESSION[$key])) {
+            unset($_SESSION[$key]);
+            return true;
+        }
+        return false;
+    }
+
+    private function setSessionMessageFlag(string $className)
+    {
+        $_SESSION['submit_' . $className::$definition['table']] = true;
+    }
+
     private function removeFilterValues(int $id) {
         return $this->getDatabase()->execute(
             'DELETE FROM ' . _DB_PREFIX_ . 'filter_value
@@ -852,7 +867,7 @@ class Ps_Facetedsearch extends Module implements WidgetInterface
             $filter_group->type = Tools::getValue('custom_filter_group_type');
 
             if ($filter_group->save(false, false)) {
-                $_SESSION['submitCustomFilterGroup'] = true;
+                $this->setSessionMessageFlag('FilterGroup');
                 $this->redirectAdmin(['filter_group' => $filter_group->id]);
             } else {
                 $message .= $this->getSaveFailureMessage(
@@ -881,7 +896,7 @@ class Ps_Facetedsearch extends Module implements WidgetInterface
             }
 
             if ($filter_subgroup->save(false, false)) {
-                $_SESSION['submitCustomFilterSubgroup'] = true;
+                $this->setSessionMessageFlag('FilterSubgroup');
                 $this->redirectAdmin([
                     'filter_group' => $filter_subgroup->id_filter_group,
                     'filter_subgroup' => $filter_subgroup->id,
@@ -895,8 +910,7 @@ class Ps_Facetedsearch extends Module implements WidgetInterface
 
 
         if ($this->getCustomFilterModelId('FilterSubgroup', false) !== false) {
-            if (isset($_SESSION['submitCustomFilterSubgroup'])) {
-                unset($_SESSION['submitCustomFilterSubgroup']);
+            if ($this->checkSessionMessage('FilterSubgroup')) {
                 $message .= $this->getSaveSuccessMessage(
                     $this->trans('Filter subgroup operation succeed', [], 'Modules.Facetedsearch.Admin')
                 );
@@ -960,8 +974,7 @@ class Ps_Facetedsearch extends Module implements WidgetInterface
             return $message . $html;
 
         } elseif ($this->getCustomFilterModelId('FilterGroup', false) !== false) {
-            if (isset($_SESSION['submitCustomFilterGroup'])) {
-                unset($_SESSION['submitCustomFilterGroup']);
+            if ($this->checkSessionMessage('FilterGroup')) {
                 $message .= $this->getSaveSuccessMessage(
                     $this->trans('Filter group operation succeed', [], 'Modules.Facetedsearch.Admin')
                 );
