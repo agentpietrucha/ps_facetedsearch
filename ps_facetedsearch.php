@@ -1790,7 +1790,7 @@ VALUES(' . $last_id . ', ' . (int) $idShop . ')');
 
         $result &= $this->getDatabase()->execute(
             'ALTER TABLE `' . _DB_PREFIX_ . 'layered_category`
-            MODIFY COLUMN `type` ENUM ((\'category\', \'id_custom_filter\', \'id_feature\', \'id_attribute_group\', \'availability\', \'condition\', \'manufacturer\', \'weight\', \'price\') NOT NULL)'
+            MODIFY COLUMN `type` ENUM (\'category\', \'id_custom_filter\', \'id_feature\', \'id_attribute_group\', \'availability\', \'condition\', \'manufacturer\', \'weight\', \'price\') NOT NULL'
         );
 
         return $result;
