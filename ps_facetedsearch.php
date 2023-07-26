@@ -797,6 +797,14 @@ class Ps_Facetedsearch extends Module implements WidgetInterface
         return (new $className($id))->delete();
     }
 
+    private function removeCustomFilterFromLayeredCategories(int $id): bool
+    {
+        return $this->getDatabase()->execute(
+            'DELETE FROM `' . _DB_PREFIX_ . 'layered_category`
+            where `type` = \'id_custom_filter\' and `id_value` = ' . $id
+        );
+    }
+
     /**
      * Get page content
      */
@@ -808,25 +816,19 @@ class Ps_Facetedsearch extends Module implements WidgetInterface
         $this->context->controller->addCSS($this->_path . 'views/dist/back.css');
 
         if (Tools::getValue('delete_custom_filter')) {
-            if ($this->getCustomFilterModelId('FilterGroup')) {
-                if (!$this->removeCustomFilterModel('FilterGroup')) {
-                    $message .= $this->getSaveFailureMessage(
-                        $this->trans('Filter group removal went wrong, it was not removed', [], 'Modules.Facetedsearch.Admin')
-                    );
-                } else {
-                    $message .= $this->getSaveSuccessMessage(
-                        $this->trans('Filter group removal succeed', [], 'Modules.Facetedsearch.Admin')
-                    );
+            if ($filterGroupId = $this->getCustomFilterModelId('FilterGroup')) {
+                if ($this->removeCustomFilterModel('FilterGroup')) {
+                    $this->removeCustomFilterFromLayeredCategories($filterGroupId);
                 }
+                $this->redirectAdmin([]);
             } elseif ($this->getCustomFilterModelId('FilterSubgroup')) {
+                $filterSubgroup = new FilterSubgroup($this->getCustomFilterModelId('FilterSubgroup'));
                 if (!$this->removeCustomFilterModel('FilterSubgroup')) {
-                    $message .= $this->getSaveFailureMessage(
-                        $this->trans('Filter subgroup removal went wrong, it was not removed', [], 'Modules.Facetedsearch.Admin')
-                    );
+                    $this->redirectAdmin([]);
                 } else {
-                    $message .= $this-$this->getSaveSuccessMessage(
-                        $this->trans('Filter subgroup removal succeed', [], 'Modules.Facetedsearch.Admin')
-                    );
+                    $this->redirectAdmin([
+                        'filter_group' => $filterSubgroup->id_filter_group,
+                    ]);
                 }
             }
         }
