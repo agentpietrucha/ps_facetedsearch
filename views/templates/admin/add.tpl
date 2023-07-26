@@ -228,7 +228,7 @@
                     <li class="filter_list_item row" draggable="true">
                       <div class="col-lg-2">
                         <label class="switch-light prestashop-switch fixed-width-lg">
-                          <input name="custom_filter_{(int)$custom_filter->id}" id="custom_filter_{(int)$custom_filter->id}" type="checkbox" />
+                          <input name="layered_selection_custom_filter_{(int)$custom_filter->id}" id="custom_filter_{(int)$custom_filter->id}" type="checkbox" />
                           <span>
                             <span>{l s='Yes' d='Admin.Global'}</span>
                             <span>{l s='No' d='Admin.Global'}</span>
