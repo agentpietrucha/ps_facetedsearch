@@ -1,5 +1,3 @@
-{include file='./_partials/messages.tpl'}
-
 <div class="panel">
   <h3><i class="icon-cogs"></i> {l s='Custom filters subgroups' d='Modules.Facetedsearch.Admin'}<span class="badge">{$filter_subgroups|count}</span></h3>
   <table class="table">

@@ -30,7 +30,6 @@
     {include file='./_partials/categories-tree.tpl'}
     {include file='./_partials/shops.tpl'}
 
-    {* List of available filters to choose from *}
     <div class="form-group">
       <label class="control-label col-lg-3">
         <span class="badge" id="selected_filters">0</span>
@@ -80,6 +79,7 @@
                   </div>
                 </div>
               </li>
+
               <li class="filter_list_item row" draggable="true">
                 <div class="col-lg-2">
                   <label class="switch-light prestashop-switch fixed-width-lg">

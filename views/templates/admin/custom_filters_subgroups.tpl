@@ -1,5 +1,3 @@
-{include file='./_partials/messages.tpl'}
-
 <form method="post" class="form-horizontal">
   <div class="panel">
     <h3><i class="icon-cogs"></i> {l s='Attributes' d='Modules.Facetedsearch.Admin'}</h3>
