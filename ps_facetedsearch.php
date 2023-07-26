@@ -594,7 +594,7 @@ class Ps_Facetedsearch extends Module implements WidgetInterface
         }
     }
 
-    public function renderFilterGroupForm(FilterGroup $filterGroup) {
+    private function renderFilterGroupForm(FilterGroup $filterGroup) {
         $select_values = [];
         foreach (FilterGroup::TYPES as $type) {
             $select_values[] = [
@@ -667,7 +667,7 @@ class Ps_Facetedsearch extends Module implements WidgetInterface
         return $helper->generateForm([$form]);
     }
 
-    public function renderFilterSubgroupForm (FilterSubgroup $filterSubgroup) {
+    private function renderFilterSubgroupForm (FilterSubgroup $filterSubgroup) {
         $title = $filterSubgroup->id === null
             ? $this->trans('Create new custom filters subgroup name', [], 'Modules.Facetedsearch.Admin')
             : $this->trans('Edit existing custom filters subgroup name', [], 'Modules.Facetedsearch.Admin');
