@@ -1214,7 +1214,7 @@ class Ps_Facetedsearch extends Module implements WidgetInterface
         $features = $this->getAvailableFeatures();
         $attributeGroups = $this->getAvailableAttributes();
 
-        $customFitlers = $this->getAvailableCustomFilters();
+        $customFilters = $this->getAvailableCustomFilters();
 
         // Get available controllers
         $controller_options = $this->getSupportedControllers();
@@ -1274,7 +1274,7 @@ class Ps_Facetedsearch extends Module implements WidgetInterface
             'default_filters' => $this->getDefaultFilters(),
             'categories_tree' => $treeCategoriesHelper->render(),
             'controller_options' => $controller_options,
-            'custom_filters' => $customFitlers,
+            'custom_filters' => $customFilters,
         ]);
 
         // We are using two separate templates depending on context
@@ -1309,8 +1309,8 @@ class Ps_Facetedsearch extends Module implements WidgetInterface
 
     private function getAvailableCustomFilters()
     {
-        $tmp = new PrestaShopCollection('FilterGroup', $this->context->language->id);
-        return $tmp->getResults();
+        return (new PrestaShopCollection('FilterGroup', $this->context->language->id))
+            ->getResults();
     }
 
     /**
