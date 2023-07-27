@@ -174,7 +174,9 @@ class Search
                     $customFilterValues = (new \PrestaShopCollection('FilterValue', $idLang))
                         ->where('id_filter_subgroup', 'in', $filterSubgroupIdsArray)
                         ->getResults();
-
+                    if (empty($customFilterValues)) {
+                        break;
+                    }
                     $attributesIds = [];
                     foreach ($customFilterValues as $customFilterValue) {
                         $attributesIds[] = $customFilterValue->id_attribute;
