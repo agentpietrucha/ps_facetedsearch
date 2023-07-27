@@ -221,6 +221,35 @@
                   </div>
                 </div>
               </li>
+
+{*----------------------------CUSTOM FILTERS----------------------------*}
+              {if $custom_filters|count > 0}
+                {foreach $custom_filters as $custom_filter}
+                    <li class="filter_list_item row" draggable="true">
+                      <div class="col-lg-2">
+                        <label class="switch-light prestashop-switch fixed-width-lg">
+                          <input name="layered_selection_custom_filter_{(int)$custom_filter->id}" id="custom_filter_{(int)$custom_filter->id}" type="checkbox" />
+                          <span>
+                            <span>{l s='Yes' d='Admin.Global'}</span>
+                            <span>{l s='No' d='Admin.Global'}</span>
+                          </span>
+                          <a class="slide-button btn"></a>
+                        </label>
+                      </div>
+                      <div class="col-lg-4">
+                        <span class="module_name">
+                          {l
+                            s='Custom filter: %name%'
+                            sprintf=['%name%' => $custom_filter->name]
+                            d='Modules.Facetedsearch.Admin'
+                          }
+                        </span>
+                      </div>
+                    </li>
+                {/foreach}
+              {/if}
+{*----------------------------CUSTOM FILTERS----------------------------*}
+
               {if $attribute_groups|count > 0}
                 {foreach $attribute_groups as $attribute_group}
                   <li class="filter_list_item row" draggable="true">

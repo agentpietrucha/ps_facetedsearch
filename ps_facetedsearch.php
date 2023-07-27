@@ -29,6 +29,11 @@ if (file_exists($autoloadPath)) {
 use PrestaShop\Module\FacetedSearch\Filters\Converter;
 use PrestaShop\Module\FacetedSearch\HookDispatcher;
 use PrestaShop\PrestaShop\Core\Module\WidgetInterface;
+use PrestaShop\PrestaShop\Adapter\Attribute\AttributeDataProvider;
+
+include_once __DIR__ . '/src/Models/FilterGroup.php';
+include_once __DIR__ . '/src/Models/FilterSubgroup.php';
+include_once __DIR__ . '/src/Models/FilterValue.php';
 
 class Ps_Facetedsearch extends Module implements WidgetInterface
 {
@@ -212,6 +217,9 @@ class Ps_Facetedsearch extends Module implements WidgetInterface
 
             $this->rebuildLayeredStructure();
             $this->buildLayeredCategories();
+            if (!$this->createCustomFiltersTables()) {
+                return false;
+            }
 
             $productsCount = $this->getDatabase()->getValue('SELECT COUNT(*) FROM `' . _DB_PREFIX_ . 'product`');
 
@@ -258,7 +266,7 @@ class Ps_Facetedsearch extends Module implements WidgetInterface
         $this->getDatabase()->execute('DROP TABLE IF EXISTS ' . _DB_PREFIX_ . 'layered_price_index');
         $this->getDatabase()->execute('DROP TABLE IF EXISTS ' . _DB_PREFIX_ . 'layered_product_attribute');
 
-        return parent::uninstall();
+        return $this->dropCustomFiltersTables() && parent::uninstall();
     }
 
     /**
@@ -586,6 +594,217 @@ class Ps_Facetedsearch extends Module implements WidgetInterface
         }
     }
 
+    private function renderFilterGroupForm(FilterGroup $filterGroup) {
+        $select_values = [];
+        foreach (FilterGroup::TYPES as $type) {
+            $select_values[] = [
+                'id' => $type['id'],
+                'name' => $this->trans($type['name'], [], 'Modules.Facetedsearch.Admin'),
+            ];
+        }
+
+        $title = $filterGroup->id === null
+            ? $this->trans('Create new custom filters group name', [], 'Modules.Facetedsearch.Admin')
+            : $this->trans('Edit existing custom filters group name', [], 'Modules.Facetedsearch.Admin');
+
+        $form = [
+            'form' => [
+                'legend' => [
+                    'title' => $title,
+                    'icon' => 'icon-cogs',
+                ],
+                'input' => [
+                    [
+                        'type' => 'text',
+                        'label' => $this->trans('Custom filter group name', [], 'Modules.Facetedsearch.Admin'),
+                        'name' => 'custom_filter_group_name',
+                        'required' => true,
+                        'lang' => true,
+                    ],
+                    [
+                        'type' => 'select',
+                        'label' => $this->trans('Filter type', [], 'Modules.Facetedsearch.Admin'),
+                        'name' => 'custom_filter_group_type',
+                        'required' => true,
+                        'options' => [
+                            'query' => $select_values,
+                            'id' => 'id',
+                            'name' => 'name',
+                        ]
+                    ]
+                ],
+                'submit' => [
+                    'title' => $this->trans('Save', [], 'Modules.Facetedsearch.Admin'),
+                    'class' => 'btn btn-default pull-right',
+                ],
+            ],
+        ];
+
+        $primaryKey = FilterGroup::$definition['primary'];
+
+        $helper = new HelperForm();
+
+        $helper->id = $filterGroup->id;
+        $helper->identifier = $primaryKey;
+
+        $helper->name_controller = $this->name;
+        $helper->token = Tools::getAdminTokenLite('AdminModules');
+        $helper->submit_action = 'submit_' . $primaryKey;
+        $helper->show_cancel_button = $filterGroup->id === null;
+
+        $lang_default = new Language((int) Configuration::get('PS_LANG_DEFAULT'));
+        $helper->default_form_language = $lang_default->id;
+
+        $languages = $this->context->controller->getLanguages();
+        $helper->languages = $languages;
+
+        $helper->fields_value['custom_filter_group_type'] = $filterGroup->type;
+        foreach ($languages as $language) {
+            $id_lang = $language['id_lang'];
+            $helper->fields_value['custom_filter_group_name'][$id_lang] = $filterGroup->name[$id_lang] ?? '';
+        }
+
+        return $helper->generateForm([$form]);
+    }
+
+    private function renderFilterSubgroupForm (FilterSubgroup $filterSubgroup) {
+        $title = $filterSubgroup->id === null
+            ? $this->trans('Create new custom filters subgroup name', [], 'Modules.Facetedsearch.Admin')
+            : $this->trans('Edit existing custom filters subgroup name', [], 'Modules.Facetedsearch.Admin');
+
+        $form = [
+            'form' => [
+                'legend' => [
+                    'title' => $title,
+                    'icon' => 'icon-cogs',
+                ],
+                'input' => [
+                    [
+                        'type' => 'text',
+                        'label' => $this->trans('Custom filter subgroup name', [], 'Modules.Facetedsearch.Admin'),
+                        'name' => 'custom_filter_subgroup_name',
+                        'required' => true,
+                        'lang' => true,
+                    ]
+                ],
+                'submit' => [
+                    'title' => $this->trans('Save', [], 'Modules.Facetedsearch.Admin'),
+                    'class' => 'btn btn-default pull-right',
+                ],
+            ],
+        ];
+
+        $primaryKey = FilterSubgroup::$definition['primary'];
+
+        $helper = new HelperForm();
+
+        $helper->id = $filterSubgroup->id;
+        $helper->identifier = $primaryKey;
+
+        $helper->name_controller = $this->name;
+        $helper->token = Tools::getAdminTokenLite('AdminModules');
+        $helper->submit_action = 'submit_' . $primaryKey;
+        $helper->show_cancel_button = $filterSubgroup->id === null;
+
+        $lang_default = new Language((int) Configuration::get('PS_LANG_DEFAULT'));
+        $helper->default_form_language = $lang_default->id;
+
+        $languages = $this->context->controller->getLanguages();
+        $helper->languages = $languages;
+
+        foreach ($languages as $language) {
+            $id_lang = $language['id_lang'];
+            $helper->fields_value['custom_filter_subgroup_name'][$id_lang] = $filterSubgroup->name[$id_lang] ?? '';
+        }
+
+        return $helper->generateForm([$form]);
+    }
+
+    private function getSaveFailureMessage(string $message) {
+        return "<div class=\"alert alert-danger\" role=\"alert\">
+                  <p class=\"alert-text\">" . $message .  "</p>
+                </div>";
+    }
+
+    private function getSaveSuccessMessage(string $message) {
+        return "<div class=\"alert alert-success\" role=\"alert\">
+                  <p class=\"alert-text\">" . $message .  "</p>
+                </div>";
+    }
+
+    private function checkSessionMessage(string $className): bool
+    {
+        $key = 'submit_' . $className::$definition['table'];
+        if (isset($_SESSION[$key])) {
+            unset($_SESSION[$key]);
+            return true;
+        }
+        return false;
+    }
+
+    private function setSessionMessageFlag(string $className)
+    {
+        $_SESSION['submit_' . $className::$definition['table']] = true;
+    }
+
+    private function removeFilterValues(int $id) {
+        return $this->getDatabase()->execute(
+            'DELETE FROM ' . _DB_PREFIX_ . 'filter_value
+                WHERE id_filter_subgroup = ' . $id
+        );
+    }
+
+    private function checkSubmit(string $className)
+    {
+        return Tools::isSubmit('submit_' . $className::$definition['primary']);
+    }
+
+    /**
+     * @param class-string $className
+     */
+    private function getCustomFilterModelId(string $className, int|bool $defaultValue = 0)
+    {
+        return gettype($defaultValue) === 'boolean'
+            ? Tools::getValue($className::$definition['table'], $defaultValue)
+            : (int) Tools::getValue($className::$definition['table'], $defaultValue);
+    }
+
+    /**
+     * @param class-string $className
+     */
+    private function checkIfFilterModelExists(string $className)
+    {
+        $id = $this->getCustomFilterModelId($className);
+        $object = new $className($id);
+        if ($object->id === null && $id !== 0) {
+            $this->redirectAdmin([]);
+        }
+        return $object;
+    }
+
+    private function redirectAdmin(array $params)
+    {
+        $params['configure'] = $this->name;
+        Tools::redirectAdmin($this->context->link->getAdminLink('AdminModules', true, [], $params));
+    }
+
+    /**
+     * @param class-string $className
+     */
+    private function removeCustomFilterModel(string $className)
+    {
+        $id = $this->getCustomFilterModelId($className);
+        return (new $className($id))->delete();
+    }
+
+    private function removeCustomFilterFromLayeredCategories(int $id): bool
+    {
+        return $this->getDatabase()->execute(
+            'DELETE FROM `' . _DB_PREFIX_ . 'layered_category`
+            where `type` = \'id_custom_filter\' and `id_value` = ' . $id
+        );
+    }
+
     /**
      * Get page content
      */
@@ -593,6 +812,203 @@ class Ps_Facetedsearch extends Module implements WidgetInterface
     {
         global $cookie;
         $message = '';
+
+        $this->context->controller->addCSS($this->_path . 'views/dist/back.css');
+
+        if (Tools::getValue('delete_custom_filter')) {
+            if ($filterGroupId = $this->getCustomFilterModelId('FilterGroup')) {
+                if ($this->removeCustomFilterModel('FilterGroup')) {
+                    $this->removeCustomFilterFromLayeredCategories($filterGroupId);
+                }
+                $this->redirectAdmin([]);
+            } elseif ($this->getCustomFilterModelId('FilterSubgroup')) {
+                $filterSubgroup = new FilterSubgroup($this->getCustomFilterModelId('FilterSubgroup'));
+                if (!$this->removeCustomFilterModel('FilterSubgroup')) {
+                    $this->redirectAdmin([]);
+                } else {
+                    $this->redirectAdmin([
+                        'filter_group' => $filterSubgroup->id_filter_group,
+                    ]);
+                }
+            }
+        }
+
+        if ($this->checkSubmit('FilterValue')) {
+            $filter_subgroup = $this->checkIfFilterModelExists('FilterSubgroup');
+
+            // check for filter_subgroup === 0
+            if ($filter_subgroup->id === null) {
+                $this->redirectAdmin([]);
+            }
+
+            if (!$this->removeFilterValues($filter_subgroup->id)) {
+                $message .= $this->getSaveFailureMessage(
+                    $this->trans('Filter values update went wrong', [], 'Modules.Facetedsearch.Admin')
+                );
+            } else {
+                $checkboxes = Tools::getValue('selected_attribute');
+                $result = null;
+                foreach ($checkboxes as $checkbox) {
+                    $filterValue = new FilterValue();
+                    $filterValue->id_filter_subgroup = $filter_subgroup->id;
+                    $checkboxValues = explode(';', $checkbox);
+                    $filterValue->id_attribute = $checkboxValues[0];
+                    $filterValue->id_attribute_group = $checkboxValues[1];
+                    $result = $filterValue->save();
+                }
+                $message .= $result
+                    ? $this->getSaveSuccessMessage($this->trans('Attribtues successfully added to filter subgroup', [], 'Modules.Facetedsearch.Admin'))
+                    : $this->getSaveFailureMessage($this->trans('Adding new attributes to filter value failed', [], 'Modules.Facetedsearch.Admin'));
+            }
+
+        } elseif ($this->checkSubmit('FilterGroup')) {
+            $filter_group = $this->checkIfFilterModelExists('FilterGroup');
+
+            $lang_id = $this->context->language->id;
+            $filter_group->name[$lang_id] = Tools::getValue('custom_filter_group_name_' . $lang_id);
+            $filter_group->type = Tools::getValue('custom_filter_group_type');
+
+            if ($filter_group->save(false, false)) {
+                $this->setSessionMessageFlag('FilterGroup');
+                $this->redirectAdmin(['filter_group' => $filter_group->id]);
+            } else {
+                $message .= $this->getSaveFailureMessage(
+                    $this->trans('Creation of filter group failed', [], 'Modules.Facetedsearch.Admin')
+                );
+            }
+
+        } elseif ($this->checkSubmit('FilterSubgroup')) {
+            $filter_group = $this->checkIfFilterModelExists('FilterGroup');
+
+            $filter_subgroup = $this->checkIfFilterModelExists('FilterSubgroup');
+
+            if ($filter_group->id === null && $filter_subgroup->id !== null) {
+                $filter_group = new FilterGroup($filter_subgroup->id);
+            } elseif ($filter_group->id === null && $filter_subgroup->id === null) {
+                $this->redirectAdmin([]);
+            }
+
+            $lang_id = $this->context->language->id;
+            $filter_subgroup->name[$lang_id] = Tools::getValue('custom_filter_subgroup_name_' . $lang_id);
+            $filter_subgroup->position = 0;
+
+            // set "id_filter_group" only if creating new record. Don't override
+            if ($filter_subgroup->id === null) {
+                $filter_subgroup->id_filter_group = $filter_group->id;
+            }
+
+            if ($filter_subgroup->save(false, false)) {
+                $this->setSessionMessageFlag('FilterSubgroup');
+                $this->redirectAdmin([
+                    'filter_group' => $filter_subgroup->id_filter_group,
+                    'filter_subgroup' => $filter_subgroup->id,
+                ]);
+            } else {
+                $message .= $this->getSaveFailureMessage(
+                    $this->trans('Creation of filter subgroup failed', [], 'Modules.Facetedsearch.Admin')
+                );
+            }
+        }
+
+
+        if ($this->getCustomFilterModelId('FilterSubgroup', false) !== false) {
+            if ($this->checkSessionMessage('FilterSubgroup')) {
+                $message .= $this->getSaveSuccessMessage(
+                    $this->trans('Filter subgroup operation succeed', [], 'Modules.Facetedsearch.Admin')
+                );
+            }
+
+            $filter_group = $this->checkIfFilterModelExists('FilterGroup');
+
+            $filter_subgroup = $this->checkIfFilterModelExists('FilterSubgroup');
+
+            // If no filter group is specified, user can be redirected to proper filter group
+            // as long as given subgroup exists
+            if ($filter_group->id === null && $filter_subgroup->id !== null) {
+                $this->redirectAdmin([
+                    'filter_group' => $filter_subgroup->id_filter_group,
+                    'filter_subgroup' => $filter_subgroup->id,
+                ]);
+            // if neither filter group nor subgroup exists (id === 0), then redirect to module homepage
+            } elseif ($filter_group->id === null && $filter_subgroup->id === null) {
+                $this->redirectAdmin([]);
+            }
+
+            $html = $this->renderFilterSubgroupForm($filter_subgroup);
+
+            if ($filter_subgroup->id) {
+                $lang_id = $this->context->language->id;
+
+                $selectedAttributesIds = [];
+                $selectedAttributes = (new PrestaShopCollection('FilterValue'))
+                    ->where('id_filter_subgroup', '=', $filter_subgroup->id)
+                    ->getResults();
+                foreach ($selectedAttributes as $selectedAttribute) {
+                    $selectedAttributesIds[] = $selectedAttribute->id_attribute;
+                }
+
+                $attribute_grouped = [];
+                $attributes = AttributeDataProvider::getAttributes($lang_id);
+                foreach ($attributes as $attribute) {
+                    $attribute['selected'] = in_array($attribute['id_attribute'], $selectedAttributesIds);
+                    $attribute_grouped[$attribute['attribute_group']][] = $attribute;
+                }
+
+                // Sort by name and then by 'selected'
+                foreach ($attribute_grouped as $key => $values) {
+                    usort($values, fn ($a, $b) => $a['name'] <=> $b['name']);
+                    usort($values, fn ($a, $b) => $b['selected'] <=> $a['selected']);
+                    $attribute_grouped[$key] = $values;
+                }
+
+                $this->context->smarty->assign([
+                    'submit_action' => 'submit_' . FilterValue::$definition['primary'],
+                    'attribute_grouped' => $attribute_grouped,
+                    'back_url' => $this->context->link->getAdminLink('AdminModules', true, [], [
+                        'filter_group' => $filter_subgroup->id_filter_group,
+                        'configure' => $this->name
+                    ])
+                ]);
+
+                $html .= $this->display(__FILE__, 'views/templates/admin/custom_filters_subgroups.tpl');
+            }
+
+            return $message . $html;
+
+        } elseif ($this->getCustomFilterModelId('FilterGroup', false) !== false) {
+            if ($this->checkSessionMessage('FilterGroup')) {
+                $message .= $this->getSaveSuccessMessage(
+                    $this->trans('Filter group operation succeed', [], 'Modules.Facetedsearch.Admin')
+                );
+            }
+
+            $filter_group = $this->checkIfFilterModelExists('FilterGroup');
+
+            $html = $this->renderFilterGroupForm($filter_group);
+
+            if ($filter_group->id) {
+                $subgroups = (new PrestaShopCollection('FilterSubgroup', $this->context->language->id))
+                    ->where('id_filter_group', '=', $filter_group->id)
+                    ->orderBy('position')
+                    ->getResults();
+
+                $this->context->smarty->assign([
+                    'current_url' => $this->context->link->getAdminLink('AdminModules') . '&configure=ps_facetedsearch&tab_module=front_office_features&module_name=ps_facetedsearch',
+                    'filter_subgroups' => $subgroups,
+                    'filter_group_id' => $filter_group->id,
+                    'back_url' => $this->context->link->getAdminLink('AdminModules', true, [], [
+                        'configure' => $this->name
+                    ])
+                ]);
+
+                $html .= $this->display(__FILE__, 'views/templates/admin/custom_filters_group.tpl');
+            }
+
+
+            return $message . $html;
+        }
+
+
 
         if (Tools::isSubmit('SubmitFilter')) {
             // Get filter data
@@ -743,7 +1159,6 @@ class Ps_Facetedsearch extends Module implements WidgetInterface
             $this->context->controller->addJS(_PS_JS_DIR_ . 'jquery/plugins/jquery.sortable.js');
         }
         $this->context->controller->addJS($this->_path . 'views/dist/back.js');
-        $this->context->controller->addCSS($this->_path . 'views/dist/back.css');
 
         // Render screen for adding new template
         if (Tools::getValue('add_new_filters_template')) {
@@ -799,6 +1214,7 @@ class Ps_Facetedsearch extends Module implements WidgetInterface
             'filter_by_default_category' => (bool) Configuration::get('PS_LAYERED_FILTER_BY_DEFAULT_CATEGORY'),
             'use_jquery_ui_slider' => (bool) Configuration::get('PS_USE_JQUERY_UI_SLIDER'),
             'default_category_template' => Configuration::get('PS_LAYERED_DEFAULT_CATEGORY_TEMPLATE'),
+            'filter_groups' => (new PrestaShopCollection('FilterGroup', $this->context->language->id))->getResults(),
         ]);
 
         return $this->display(__FILE__, 'views/templates/admin/manage.tpl');
@@ -812,6 +1228,8 @@ class Ps_Facetedsearch extends Module implements WidgetInterface
         // Get general data for use in template settings
         $features = $this->getAvailableFeatures();
         $attributeGroups = $this->getAvailableAttributes();
+
+        $customFilters = $this->getAvailableCustomFilters();
 
         // Get available controllers
         $controller_options = $this->getSupportedControllers();
@@ -871,6 +1289,7 @@ class Ps_Facetedsearch extends Module implements WidgetInterface
             'default_filters' => $this->getDefaultFilters(),
             'categories_tree' => $treeCategoriesHelper->render(),
             'controller_options' => $controller_options,
+            'custom_filters' => $customFilters,
         ]);
 
         // We are using two separate templates depending on context
@@ -901,6 +1320,12 @@ class Ps_Facetedsearch extends Module implements WidgetInterface
     private function query($sqlQuery)
     {
         return $this->getDatabase()->query($sqlQuery);
+    }
+
+    private function getAvailableCustomFilters()
+    {
+        return (new PrestaShopCollection('FilterGroup', $this->context->language->id))
+            ->getResults();
     }
 
     /**
@@ -1291,6 +1716,8 @@ VALUES(' . $last_id . ', ' . (int) $idShop . ')');
                             } elseif (substr($key, 0, 23) == 'layered_selection_feat_') {
                                 $sqlInsert .= '(' . (int) $idCategory . ', \'' . $controller . '\', ' . (int) $idShop . ', ' . (int) str_replace('layered_selection_feat_', '', $key) . ',
     \'id_feature\',' . (int) $n . ', ' . (int) $limit . ', ' . (int) $type . '),';
+                            } elseif (substr($key, 0, 32) === 'layered_selection_custom_filter_') {
+                                $sqlInsert .= '(' . (int) $idCategory . ', \'' . $controller . '\', ' . (int) $idShop . ', ' . (int) str_replace('layered_selection_custom_filter_', '', $key) . ', \'id_custom_filter\',' . (int) $n . ', ' . (int) $limit . ', ' . (int) $type . '),';
                             }
 
                             ++$nbSqlValuesToInsert;
@@ -1311,6 +1738,88 @@ VALUES(' . $last_id . ', ' . (int) $idShop . ')');
         if ($nbSqlValuesToInsert) {
             $this->getDatabase()->execute($sqlInsertPrefix . rtrim($sqlInsert, ','));
         }
+    }
+
+    private function createCustomFiltersTables(): bool
+    {
+        // custom filter group (ps_filter_group)
+        $result = $this->getDatabase()->execute(
+            'CREATE TABLE IF NOT EXISTS `' . _DB_PREFIX_ . 'filter_group` (
+            `id_filter_group` INT AUTO_INCREMENT PRIMARY KEY,
+            `type` ENUM(\'text\', \'color\') DEFAULT \'text\'
+            ) ENGINE=' . _MYSQL_ENGINE_ . ' DEFAULT CHARSET=utf8;'
+        );
+
+        $result &= $this->getDatabase()->execute(
+            'CREATE TABLE IF NOT EXISTS `' . _DB_PREFIX_ . 'filter_group_lang` (
+            `id_filter_group` INT,
+            `id_lang` INT NOT NULL,
+            `name` varchar(128) NOT NULL,
+            CONSTRAINT `pk_ps_filter_group_lang`
+            PRIMARY KEY (`id_filter_group`, `id_lang`),
+            CONSTRAINT `fk_lang_filter_group`
+            FOREIGN KEY (`id_filter_group`) REFERENCES `' . _DB_PREFIX_ . 'filter_group` (`id_filter_group`)
+            ON DELETE CASCADE) ENGINE=' . _MYSQL_ENGINE_ . ' DEFAULT CHARSET=utf8;'
+        );
+
+        // custom filter subgroup (ps_filter_subgroup)
+        $result &= $this->getDatabase()->execute(
+            'CREATE TABLE IF NOT EXISTS `' . _DB_PREFIX_ . 'filter_subgroup` (
+            `id_filter_subgroup` INT AUTO_INCREMENT PRIMARY KEY,
+            `id_filter_group` INT,
+            `position` INT NOT NULL,
+            CONSTRAINT `fk_filter_subgroup_filter_group`
+            FOREIGN KEY (`id_filter_group`) REFERENCES `' . _DB_PREFIX_ . 'filter_group` (`id_filter_group`)
+            ON DELETE CASCADE) ENGINE=' . _MYSQL_ENGINE_ . ' DEFAULT CHARSET=utf8;'
+        );
+
+        $result &= $this->getDatabase()->execute(
+            'CREATE TABLE IF NOT EXISTS `' . _DB_PREFIX_ . 'filter_subgroup_lang` (
+          `id_filter_subgroup` INT,
+          `id_lang` INT NOT NULL,
+          `name` VARCHAR(128) NOT NULL,
+          CONSTRAINT `pk_ps_filter_subgroup_lang`
+          PRIMARY KEY (`id_filter_subgroup`, `id_lang`),
+          CONSTRAINT `fk_lang_filter_subgroup`
+          FOREIGN KEY (`id_filter_subgroup`) REFERENCES `' . _DB_PREFIX_ . 'filter_subgroup` (`id_filter_subgroup`)
+          ON DELETE CASCADE) ENGINE=' . _MYSQL_ENGINE_ . ' DEFAULT CHARSET=utf8;'
+        );
+
+        // custom filter value (ps_filter_value)
+        $result &= $this->getDatabase()->execute(
+            'CREATE TABLE IF NOT EXISTS `' . _DB_PREFIX_ . 'filter_value` (
+            `id_filter_value` INT AUTO_INCREMENT PRIMARY KEY,
+            `id_filter_subgroup` INT,
+            `id_attribute` INT,
+            `id_attribute_group` INT,
+            CONSTRAINT `fk_filter_value_filter_subgroup`
+            FOREIGN KEY (`id_filter_subgroup`) REFERENCES `' . _DB_PREFIX_ . 'filter_subgroup` (`id_filter_subgroup`)
+            ON DELETE CASCADE,
+            CONSTRAINT `fk_filter_value_attribute`
+            FOREIGN KEY (`id_attribute`) REFERENCES `' . _DB_PREFIX_ . 'attribute` (`id_attribute`)
+            ON DELETE CASCADE,
+            CONSTRAINT `fk_filter_value_attribute_group`
+            FOREIGN KEY (`id_attribute_group`) REFERENCES `' . _DB_PREFIX_ . 'attribute_group` (`id_attribute_group`)
+            ON DELETE CASCADE) ENGINE=' . _MYSQL_ENGINE_ . ' DEFAULT CHARSET=utf8;'
+        );
+
+        $result &= $this->getDatabase()->execute(
+            'ALTER TABLE `' . _DB_PREFIX_ . 'layered_category`
+            MODIFY COLUMN `type` ENUM (\'category\', \'id_custom_filter\', \'id_feature\', \'id_attribute_group\', \'availability\', \'condition\', \'manufacturer\', \'weight\', \'price\') NOT NULL'
+        );
+
+        return $result;
+    }
+
+    private function dropCustomFiltersTables(): bool
+    {
+        $result = $this->getDatabase()->execute('DROP TABLE IF EXISTS `' . _DB_PREFIX_ . 'filter_value`');
+        $result &= $this->getDatabase()->execute('DROP TABLE IF EXISTS `' . _DB_PREFIX_ . 'filter_subgroup_lang`');
+        $result &= $this->getDatabase()->execute('DROP TABLE IF EXISTS `' . _DB_PREFIX_ . 'filter_subgroup`');
+        $result &= $this->getDatabase()->execute('DROP TABLE IF EXISTS `' . _DB_PREFIX_ . 'filter_group_lang`');
+        $result &= $this->getDatabase()->execute('DROP TABLE IF EXISTS `' . _DB_PREFIX_ . 'filter_group`');
+
+        return $result;
     }
 
     /**

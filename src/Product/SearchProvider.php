@@ -507,6 +507,10 @@ class SearchProvider implements FacetsRendererInterface, ProductSearchProviderIn
     private function hideUselessFacets(array $facets, $totalProducts)
     {
         foreach ($facets as $facet) {
+            if ($facet->getType() === 'custom_filter') {
+                continue;
+            }
+
             if ($facet->getWidgetType() === 'slider') {
                 $facet->setDisplayed(
                     $facet->getProperty('min') != $facet->getProperty('max')
