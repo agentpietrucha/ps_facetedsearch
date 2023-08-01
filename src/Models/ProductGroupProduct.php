@@ -2,8 +2,6 @@
 
 class ProductGroupProduct extends ObjectModel
 {
-    public $id_product_group_product;
-
     public $id_product_group;
 
     public $id_product;
