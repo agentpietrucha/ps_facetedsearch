@@ -1432,7 +1432,7 @@ class Ps_Facetedsearch extends Module implements WidgetInterface
 
         $customFilters = $this->getAvailableCustomFilters();
 
-        $product_groups = [];
+        $product_groups = $this->getAvailableProductGroups();
 
         // Get available controllers
         $controller_options = $this->getSupportedControllers();
@@ -1529,6 +1529,12 @@ class Ps_Facetedsearch extends Module implements WidgetInterface
     private function getAvailableCustomFilters()
     {
         return (new PrestaShopCollection('FilterGroup', $this->context->language->id))
+            ->getResults();
+    }
+
+    private function getAvailableProductGroups()
+    {
+        return (new PrestaShopCollection('ProductGroup', $this->context->language->id))
             ->getResults();
     }
 
@@ -1922,6 +1928,8 @@ VALUES(' . $last_id . ', ' . (int) $idShop . ')');
     \'id_feature\',' . (int) $n . ', ' . (int) $limit . ', ' . (int) $type . '),';
                             } elseif (substr($key, 0, 32) === 'layered_selection_custom_filter_') {
                                 $sqlInsert .= '(' . (int) $idCategory . ', \'' . $controller . '\', ' . (int) $idShop . ', ' . (int) str_replace('layered_selection_custom_filter_', '', $key) . ', \'id_custom_filter\',' . (int) $n . ', ' . (int) $limit . ', ' . (int) $type . '),';
+                            } elseif (substr($key, 0, 32) === 'layered_selection_product_group_') {
+                                $sqlInsert .= '(' . (int) $idCategory . ', \'' . $controller . '\', ' . (int) $idShop . ', ' . (int) str_replace('layered_selection_product_group_', '', $key) . ', \'id_product_group\',' . (int) $n . ', ' . (int) $limit . ', ' . (int) $type . '),';
                             }
 
                             ++$nbSqlValuesToInsert;

@@ -222,6 +222,34 @@
                 </div>
               </li>
 
+{*----------------------------CUSTOM PRODUCT GROUPS----------------------------*}
+              {if $product_groups|count > 0}
+                {foreach $product_groups as $product_group}
+                  <li class="filter_list_item row" draggable="true">
+                    <div class="col-lg-2">
+                      <label class="switch-light prestashop-switch fixed-width-lg">
+                        <input name="layered_selection_product_group_{(int)$product_group->id}" id="layered_selection_product_group_{(int)$product_group->id}" type="checkbox" />
+                        <span>
+                          <span>{l s='Yes' d='Admin.Global'}</span>
+                          <span>{l s='No' d='Admin.Global'}</span>
+                        </span>
+                        <a class="slide-button btn"></a>
+                      </label>
+                    </div>
+                    <div class="col-lg-4">
+                      <span class="module_name">
+                        {l
+                        s='Product group: %name%'
+                        sprintf=['%name%' => $product_group->name]
+                        d='Modules.Facetedsearch.Admin'
+                        }
+                      </span>
+                    </div>
+                  </li>
+                {/foreach}
+              {/if}
+{*----------------------------CUSTOM PRODUCT GROUPS----------------------------*}
+
 {*----------------------------CUSTOM FILTERS----------------------------*}
               {if $custom_filters|count > 0}
                 {foreach $custom_filters as $custom_filter}
