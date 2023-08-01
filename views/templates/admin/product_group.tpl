@@ -6,8 +6,8 @@
       <tr>
         <th class="fixed-width-xs"></th>
         <th class="">ID</th>
-        <th class="">Product Name</th>
-        <th class="">Product Image</th>
+        <th class="">{l s='Product Name' d='Modules.Facetedsearch.Admin'}</th>
+        <th class="">{l s='Product Image' d='Modules.Facetedsearch.Admin'}</th>
         <th class=""><span class="title_box text-right">{l s='Actions' d='Modules.Facetedsearch.Admin'}</span></th>
       </tr>
       </thead>
