@@ -48,6 +48,53 @@
   </div>
 </div>
 
+{*----------------------------CUSTOM PRODUCT GROUPS----------------------------*}
+<div class="panel">
+  <h3><i class="icon-cogs"></i> {l s='Custom Product Groups' d='Modules.Facetedsearch.Admin'}<span class="badge">{$product_groups|count}</span></h3>
+  <div class="row">
+    <table class="table">
+      <thead>
+      <tr>
+        <th class="fixed-width-xs center"><span class="title_box">{l s='ID' d='Admin.Global'}</span></th>
+        <th><span class="title_box text-left">{l s='Name' d='Admin.Global'}</span></th>
+        <th class="fixed-width-sm"><span class="title_box text-right">{l s='Actions' d='Modules.Facetedsearch.Admin'}</span></th>
+      </tr>
+      </thead>
+      <tbody>
+      {foreach $product_groups as $product_group}
+        <tr>
+          <td class="center">{$product_group->id}</td>
+          <td class="text-left">{$product_group->name}</td>
+          <td>
+            <div class="btn-group-action">
+              <div class="btn-group pull-right">
+                <a href="{$current_url}&amp;product_group={(int)$product_group->id}" class="btn btn-default">
+                  <i class="icon-pencil"></i> {l s='Edit' d='Admin.Actions'}
+                </a>
+                <button class="btn btn-default dropdown-toggle" data-toggle="dropdown">
+                  <span class="caret"></span>&nbsp;
+                </button>
+                <ul class="dropdown-menu">
+                  <li>
+                    <a href="{$current_url}&amp;delete_product_group=1&amp;product_group={(int)$product_group->id}"
+                       onclick="return confirm('{l s='Do you really want to delete this product group?' d='Modules.Facetedsearch.Admin'}');">
+                      <i class="icon-trash"></i> {l s='Delete' d='Admin.Actions'}
+                    </a>
+                  </li>
+                </ul>
+              </div>
+            </div>
+          </td>
+        </tr>
+      {/foreach}
+      </tbody>
+    </table>
+  </div>
+  <div class="panel-footer">
+    <a class="btn btn-default pull-right" href="{$current_url}&amp;product_group=0"><i class="process-icon-plus"></i> {l s='Add new' d='Modules.Facetedsearch.Admin'}</a>
+  </div>
+</div>
+{*----------------------------CUSTOM PRODUCT GROUPS----------------------------*}
 {*----------------------------CUSTOM FILTERS----------------------------*}
 <div class="panel">
   <h3><i class="icon-cogs"></i> {l s='Custom Filters Groups' d='Modules.Facetedsearch.Admin'}<span class="badge">{$filter_groups|count}</span></h3>

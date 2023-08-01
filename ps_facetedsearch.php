@@ -34,6 +34,8 @@ use PrestaShop\PrestaShop\Adapter\Attribute\AttributeDataProvider;
 include_once __DIR__ . '/src/Models/FilterGroup.php';
 include_once __DIR__ . '/src/Models/FilterSubgroup.php';
 include_once __DIR__ . '/src/Models/FilterValue.php';
+include_once __DIR__ . '/src/Models/ProductGroup.php';
+include_once __DIR__ . '/src/Models/ProductGroupProduct.php';
 
 class Ps_Facetedsearch extends Module implements WidgetInterface
 {
@@ -720,6 +722,64 @@ class Ps_Facetedsearch extends Module implements WidgetInterface
         return $helper->generateForm([$form]);
     }
 
+    private function renderProductGroupForm(ProductGroup $productGroup, array $productIds)
+    {
+        $form = [
+            'form' => [
+                'legend' => [
+                    'title' => 'Product Group',
+                    'icon' => 'icon-cogs',
+                ],
+                'input' => [
+                    [
+                        'type' => 'text',
+                        'label' => $this->trans('Product group name', [], 'Modules.Facetedsearch.Admin'),
+                        'name' => 'product_group_name',
+                        'required' => true,
+                        'lang' => true,
+                    ],
+                    [
+                        'type' => 'textarea',
+                        'label' => $this->trans('Product IDs', [], 'Modules.Facetedsearch.Admin'),
+                        'name' => 'product_group_products',
+                        'required' => true,
+                        'lang' => false,
+                    ],
+                ],
+                'submit' => [
+                    'title' => $this->trans('Save', [], 'Modules.Facetedsearch.Admin'),
+                    'class' => 'btn btn-default pull-right',
+                ],
+            ],
+        ];
+
+        $primaryKey = ProductGroup::$definition['primary'];
+
+        $helper = new HelperForm();
+
+        $helper->id = $productGroup->id;
+        $helper->identifier = $primaryKey;
+
+        $helper->name_controller = $this->name;
+        $helper->token = Tools::getAdminTokenLite('AdminModules');
+        $helper->submit_action = 'submit_' . $primaryKey;
+        $helper->show_cancel_button = $productGroup->id === null;
+
+        $lang_default = new Language((int) Configuration::get('PS_LANG_DEFAULT'));
+        $helper->default_form_language = $lang_default->id;
+
+        $languages = $this->context->controller->getLanguages();
+        $helper->languages = $languages;
+
+        $helper->fields_value['product_group_products'] = implode(', ', $productIds);
+        foreach ($languages as $language) {
+            $id_lang = $language['id_lang'];
+            $helper->fields_value['product_group_name'][$id_lang] = $productGroup->name[$id_lang] ?? '';
+        }
+
+        return $helper->generateForm([$form]);
+    }
+
     private function getSaveFailureMessage(string $message) {
         return "<div class=\"alert alert-danger\" role=\"alert\">
                   <p class=\"alert-text\">" . $message .  "</p>
@@ -805,15 +865,152 @@ class Ps_Facetedsearch extends Module implements WidgetInterface
         );
     }
 
+    private function clearProductGroupProduct(int $product_group_id): bool
+    {
+        return $this->getDatabase()->execute(
+            'DELETE FROM `' . _DB_PREFIX_ . 'product_group_product` where `id_product_group` = ' . $product_group_id
+        );
+    }
+
+    private function removeProductGroupProduct(int $productGroupId, int $productId): bool
+    {
+        return $this->getDatabase()->execute(
+          'DELETE FROM `' . _DB_PREFIX_ . 'product_group_product`
+          WHERE `id_product` = ' . $productId . ' AND `id_product_group` = ' . $productGroupId
+        );
+    }
+
+    private function removeProductGroupProducts(int $productGroupId, array $productIds): bool
+    {
+        return $this->getDatabase()->execute(
+            'DELETE FROM `' . _DB_PREFIX_ . 'product_group_product`
+            WHERE `id_product_group` = ' . $productGroupId . ' AND `id_product` IN (' . implode(', ', $productIds) . ')'
+        );
+    }
+
+
     /**
      * Get page content
      */
-    public function getContent()
+        public function getContent()
     {
         global $cookie;
         $message = '';
 
         $this->context->controller->addCSS($this->_path . 'views/dist/back.css');
+
+        if (Tools::getValue('delete_product_group')) {
+            if ($this->getCustomFilterModelId('ProductGroup')) {
+                $this->removeCustomFilterModel('ProductGroup');
+                $this->redirectAdmin([]);
+            }
+        } elseif (Tools::getValue('delete_product_group_product')) {
+            if ($productGroupId = $this->getCustomFilterModelId('ProductGroup')) {
+                if ($this->removeProductGroupProduct($productGroupId, Tools::getValue('product_id', 0))) {
+                    $this->redirectAdmin(['product_group' => $productGroupId]);
+                } else {
+                    $this->redirectAdmin([]);
+                }
+            }
+        } elseif (Tools::isSubmit('submit_bulk_product_group_products_delete')) {
+            if ($productGroupId = $this->getCustomFilterModelId('ProductGroup')) {
+                $productIds = Tools::getValue('product_group_products_ids');
+                if ($this->removeProductGroupProducts($productGroupId, $productIds)) {
+                    $this->redirectAdmin(['product_group' => $productGroupId]);
+                } else {
+                    $this->redirectAdmin([]);
+                }
+            }
+        }
+
+        if ($this->checkSubmit('ProductGroup')) {
+            $product_group = $this->checkIfFilterModelExists('ProductGroup');
+
+            $languages = $this->context->controller->getLanguages();
+            foreach ($languages as $language) {
+                $id_lang = $language['id_lang'];
+                $product_group->name[$id_lang] = Tools::getValue('product_group_name_' . $id_lang);
+            }
+
+            $message .= $product_group->save(true, false)
+                ?  $this->getSaveSuccessMessage($this->trans('Product group saved successfully', [], 'Modules.Facetedsearch.Admin'))
+                :  $message .= $this->getSaveFailureMessage($this->trans('Product group failed to save', [], 'Modules.Facetedsearch.Admin'));
+
+            $this->clearProductGroupProduct($product_group->id);
+
+            $products_ids = preg_replace('(\s)', '', Tools::getValue('product_group_products', ''));
+            $failedProductsIds = [];
+            if (!empty($products_ids)) {
+                $products_ids_array = array_filter(explode(',', $products_ids), fn ($n) => !empty($n) && ctype_digit($n));
+                foreach ($products_ids_array as $product_id) {
+                    $productGroupProduct = new ProductGroupProduct();
+                    $productGroupProduct->id_product_group = $product_group->id;
+                    $productGroupProduct->id_product = $product_id;
+                    try {
+                        $productGroupProduct->save();
+                    // ignore if provided product id doesn't exist
+                    } catch (Exception $e) {
+                        $failedProductsIds[] = $product_id;
+                        var_dump("\nEXCEPTION: " . $e->getMessage() . "\n");
+
+                    }
+                }
+            }
+            if (empty($failedProductsIds)) {
+                $this->setSessionMessageFlag('ProductGroup');
+                $this->redirectAdmin([
+                    'product_group' => $product_group->id,
+                ]);
+            } else {
+                $message .= $this->getSaveFailureMessage(
+                    $this->trans('Some products have caused errors. Failed products ids: ', [], 'Modules.Facetedsearch.Admin')
+                    . implode(', ', $failedProductsIds)
+                );
+            }
+        }
+
+        if ($this->getCustomFilterModelId('ProductGroup', false) !== false) {
+            if ($this->checkSessionMessage('ProductGroup')) {
+                $message .= $this->getSaveSuccessMessage(
+                    $this->trans('Product group operation succeed', [], 'Modules.Facetedsearch.Admin')
+                );
+            }
+
+            $product_group = $this->checkIfFilterModelExists('ProductGroup');
+            $product_group_products = (new PrestaShopCollection('ProductGroupProduct'))
+                ->where('id_product_group', '=', $product_group->id)
+                ->getResults();
+
+            $products_ids = array_map(fn ($n) => $n->id_product, $product_group_products);
+            $html = $this->renderProductGroupForm($product_group, $products_ids);
+
+            if ($product_group->id) {
+                $id_lang = $this->context->language->id;
+                $products = [];
+                if (!empty($products_ids)) {
+                    $products = (new PrestaShopCollection('Product', $id_lang))
+                        ->where('id_product', 'in', $products_ids)
+                        ->getResults();
+                    foreach ($products as $product) {
+                        $image = Image::getCover($product->id);
+                        $product->image = $this->context->link->getImageLink($product->link_rewrite[$id_lang], $image['id_image'], 'small_default');
+                        $product->admin_link = $this->context->link->getAdminLink('AdminProducts', true, ['id_product' => $product->id]);
+                    }
+                }
+                $this->context->smarty->assign([
+                    'products' => $products,
+                    'product_group_id' => $product_group->id,
+                    'back_url' => $this->context->link->getAdminLink('AdminModules', true, [], [
+                        'configure' => $this->name
+                    ]),
+                    'current_url' => $this->context->link->getAdminLink('AdminModules') . '&configure=ps_facetedsearch&tab_module=front_office_features&module_name=ps_facetedsearch',
+                ]);
+                $html .= $this->display(__FILE__, 'views/templates/admin/product_group.tpl');
+            }
+
+            return $message . $html;
+
+        }
 
         if (Tools::getValue('delete_custom_filter')) {
             if ($filterGroupId = $this->getCustomFilterModelId('FilterGroup')) {
@@ -1219,6 +1416,7 @@ class Ps_Facetedsearch extends Module implements WidgetInterface
             'use_jquery_ui_slider' => (bool) Configuration::get('PS_USE_JQUERY_UI_SLIDER'),
             'default_category_template' => Configuration::get('PS_LAYERED_DEFAULT_CATEGORY_TEMPLATE'),
             'filter_groups' => (new PrestaShopCollection('FilterGroup', $this->context->language->id))->getResults(),
+            'product_groups' => (new PrestaShopCollection('ProductGroup', $this->context->language->id))->getResults(),
         ]);
 
         return $this->display(__FILE__, 'views/templates/admin/manage.tpl');
@@ -1234,6 +1432,8 @@ class Ps_Facetedsearch extends Module implements WidgetInterface
         $attributeGroups = $this->getAvailableAttributes();
 
         $customFilters = $this->getAvailableCustomFilters();
+
+        $product_groups = [];
 
         // Get available controllers
         $controller_options = $this->getSupportedControllers();
@@ -1294,6 +1494,7 @@ class Ps_Facetedsearch extends Module implements WidgetInterface
             'categories_tree' => $treeCategoriesHelper->render(),
             'controller_options' => $controller_options,
             'custom_filters' => $customFilters,
+            'product_groups' => $product_groups,
         ]);
 
         // We are using two separate templates depending on context
