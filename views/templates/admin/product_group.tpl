@@ -45,7 +45,6 @@
       </tbody>
     </table>
     <div class="panel-footer">
-{*      <button class="btn btn-default pull-right" href="{$current_url}&amp;bulk_product_group_products_delete=1&amp;product_group={(int)$product_group_id}"><i class="icon-trash"></i> {l s='Bulk remove' d='Modules.Facetedsearch.Admin'}</button>*}
       <button class="btn btn-default pull-right" type="submit" name="submit_bulk_product_group_products_delete"><i class="icon-trash"></i> {l s='Bulk remove' d='Modules.Facetedsearch.Admin'}</button>
     </div>
   </div>

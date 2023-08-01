@@ -727,7 +727,7 @@ class Ps_Facetedsearch extends Module implements WidgetInterface
         $form = [
             'form' => [
                 'legend' => [
-                    'title' => 'Product Group',
+                    'title' => $this->trans('Product Group', [], 'Modules.Facetedsearch.Admin'),
                     'icon' => 'icon-cogs',
                 ],
                 'input' => [
@@ -892,7 +892,7 @@ class Ps_Facetedsearch extends Module implements WidgetInterface
     /**
      * Get page content
      */
-        public function getContent()
+    public function getContent()
     {
         global $cookie;
         $message = '';
@@ -1003,11 +1003,10 @@ class Ps_Facetedsearch extends Module implements WidgetInterface
                     'back_url' => $this->context->link->getAdminLink('AdminModules', true, [], [
                         'configure' => $this->name
                     ]),
-                    'current_url' => $this->context->link->getAdminLink('AdminModules') . '&configure=ps_facetedsearch&tab_module=front_office_features&module_name=ps_facetedsearch',
+                    'current_url' => $this->context->link->getAdminLink('AdminModules', true, [], ['configure' => $this->name]),
                 ]);
                 $html .= $this->display(__FILE__, 'views/templates/admin/product_group.tpl');
             }
-
             return $message . $html;
 
         }
