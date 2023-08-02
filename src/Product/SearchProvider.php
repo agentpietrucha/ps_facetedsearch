@@ -203,9 +203,6 @@ class SearchProvider implements FacetsRendererInterface, ProductSearchProviderIn
             }
         }
 
-        $filterBlock = $filterBlockSearch->getFilterBlock($productsAndCount['count'], $facetedSearchFilters);
-
-
         $facets = $this->filtersConverter->getFacetsFromFilterBlocks(
             $filterBlock['filters']
         );
