@@ -1010,6 +1010,7 @@ class Ps_Facetedsearch extends Module implements WidgetInterface
                 $id_lang = $language['id_lang'];
                 $product_subgroup->name[$id_lang] = Tools::getValue('product_subgroup_name_' . $id_lang);
             }
+            $product_subgroup->position = 0;
 
             // set "id_product_group" only if creating new record. Don't override
             if ($product_subgroup->id === null) {
