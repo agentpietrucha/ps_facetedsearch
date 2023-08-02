@@ -507,7 +507,7 @@ class SearchProvider implements FacetsRendererInterface, ProductSearchProviderIn
     private function hideUselessFacets(array $facets, $totalProducts)
     {
         foreach ($facets as $facet) {
-            if ($facet->getType() === 'custom_filter') {
+            if ($facet->getType() === 'custom_filter' || $facet->getType() === 'product_group') {
                 continue;
             }
 

@@ -187,6 +187,25 @@ class Search
                     );
                     break;
 
+                case 'id_product_group':
+                    $idLang = $this->context->language->id;
+                    $productIds = [];
+                    foreach ($filterValues as $productSubgroupIds) {
+                        $productsTmp = (new \PrestaShopCollection('ProductSubgroupProduct', $idLang))
+                            ->where('id_product_subgroup', 'in', $productSubgroupIds)
+                            ->getResults();
+                        $productIds[] = array_unique(array_map(fn ($n) => $n->id_product, $productsTmp));
+                    }
+                    $productIdsIntersection = $this->getDuplicates(array_merge(...$productIds));
+
+                    if (empty($productIdsIntersection)) {
+                        $productIdsIntersection = [-1];
+                    }
+                    $this->getSearchAdapter()->addOperationsFilter(
+                        'product_group',
+                        [[['id_product', $productIdsIntersection]]]
+                    );
+                    break;
                 case 'category':
                     $this->addFilter('id_category', $filterValues);
                     break;
@@ -304,6 +323,15 @@ class Search
                     break;
             }
         }
+    }
+
+    private function getDuplicates(array $arr): array
+    {
+        $duplicates = [];
+        foreach (array_count_values($arr) as $val => $count) {
+            if ($count > 1) $duplicates[] = $val;
+        }
+        return $duplicates;
     }
 
     /**

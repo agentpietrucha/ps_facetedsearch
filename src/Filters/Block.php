@@ -149,6 +149,9 @@ class Block
                 case 'id_custom_filter':
                     $filterBlocks =
                         array_merge($filterBlocks, $this->getCustomFiltersBlock($filter, $selectedFilters, $idLang));
+                case 'id_product_group':
+                    $filterBlocks =
+                        array_merge($filterBlocks, $this->getProductGroupsBlock($filter, $selectedFilters, $idLang));
                 case 'id_feature':
                     $filterBlocks =
                         array_merge($filterBlocks, $this->getFeaturesBlock($filter, $selectedFilters, $idLang));
@@ -1003,6 +1006,63 @@ class Block
             'currencyCode' => $currency->iso_code,
             'currencySymbol' => $currency->sign,
         ];
+    }
+
+    /**
+     * Get the product groups block
+     *
+     * @param array $filter
+     * @param array $selectedFilters
+     * @param int $idLang
+     *
+     * @return array
+     */
+    private function getProductGroupsBlock($filter, $selectedFilters, $idLang)
+    {
+        $productGroupBlock = [];
+        $idProductGroup = $filter['id_value'];
+
+        $productGroup = (new \PrestaShopCollection('ProductGroup', $idLang))
+            ->where('id_product_group', '=', $idProductGroup)
+            ->getFirst();
+        $productSubgroups = (new \PrestaShopCollection('ProductSubgroup', $idLang))
+            ->where('id_product_group', '=', $idProductGroup)
+            ->getResults();
+
+        $productGroupBlock[$idProductGroup] = [
+            'type_lite' => 'id_product_group',
+            'type' => 'id_product_group',
+            'id_key' => $idProductGroup,
+            'name' => $productGroup->name,
+            'values' => [],
+            'meta_title' => $productGroup->name,
+            'filter_show_limit' => (int) $filter['filter_show_limit'],
+            'filter_type' => $filter['filter_type'],
+        ];
+
+        foreach ($productSubgroups as $productSubgroup) {
+            $idProductSubgroup = $productSubgroup->id;
+
+            $productGroupBlock[$idProductGroup]['values'][$idProductSubgroup] = [
+                'name' => $productSubgroup->name,
+                'nbr' => null,
+                'meta_title' => $productSubgroup->name,
+            ];
+
+            if (array_key_exists('id_product_group', $selectedFilters)) {
+                foreach ($selectedFilters['id_product_group'] as $selectedFilter) {
+                    if (in_array($idProductSubgroup, $selectedFilter)) {
+                        $productGroupBlock[$idProductGroup]['values'][$idProductSubgroup]['checked'] = true;
+                    }
+                }
+            }
+
+        }
+        foreach ($productGroupBlock as $block) {
+            uasort($block['values'], fn ($a, $b) => strnatcasecmp($a['name'], $b['name']));
+        }
+        return $productGroupBlock;
+
     }
 
     /**
