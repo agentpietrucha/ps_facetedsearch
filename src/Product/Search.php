@@ -189,23 +189,15 @@ class Search
 
                 case 'id_product_group':
                     $idLang = $this->context->language->id;
-                    $productIdsIntersection = [];
+                    $productIds = [];
                     foreach ($filterValues as $productSubgroupIds) {
-                        if (empty($productIdsIntersection)) {
-                            $productsTmp = (new \PrestaShopCollection('ProductSubgroupProduct', $idLang))
-                                ->where('id_product_subgroup', 'in', $productSubgroupIds)
-                                ->getResults();
-                            $productsIds = array_unique(array_map(fn ($n) => $n->id_product, $productsTmp));
-                            $productIdsIntersection = $productsIds;
-                        } else {
-                            foreach ($productSubgroupIds as $productSubgroupId) {
-                                $productsTmp = (new \PrestaShopCollection('ProductSubgroupProduct', $idLang))
-                                    ->where('id_product_subgroup', '=', $productSubgroupId)
-                                    ->getResults();
-                                $productIdsIntersection = array_intersect($productIdsIntersection, array_map(fn ($n) => $n->id_product, $productsTmp));
-                            }
-                        }
+                        $productsTmp = (new \PrestaShopCollection('ProductSubgroupProduct', $idLang))
+                            ->where('id_product_subgroup', 'in', $productSubgroupIds)
+                            ->getResults();
+                        $productIds[] = array_unique(array_map(fn ($n) => $n->id_product, $productsTmp));
                     }
+                    $productIdsIntersection = $this->getDuplicates(array_merge(...$productIds));
+
                     if (empty($productIdsIntersection)) {
                         $productIdsIntersection = [-1];
                     }
@@ -331,6 +323,15 @@ class Search
                     break;
             }
         }
+    }
+
+    private function getDuplicates(array $arr): array
+    {
+        $duplicates = [];
+        foreach (array_count_values($arr) as $val => $count) {
+            if ($count > 1) $duplicates[] = $val;
+        }
+        return $duplicates;
     }
 
     /**
