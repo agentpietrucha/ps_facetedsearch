@@ -187,6 +187,33 @@ class Search
                     );
                     break;
 
+                case 'id_product_group':
+                    $idLang = $this->context->language->id;
+                    $productIdsIntersection = [];
+                    foreach ($filterValues as $productSubgroupIds) {
+                        if (empty($productIdsIntersection)) {
+                            $productsTmp = (new \PrestaShopCollection('ProductSubgroupProduct', $idLang))
+                                ->where('id_product_subgroup', 'in', $productSubgroupIds)
+                                ->getResults();
+                            $productsIds = array_unique(array_map(fn ($n) => $n->id_product, $productsTmp));
+                            $productIdsIntersection = $productsIds;
+                        } else {
+                            foreach ($productSubgroupIds as $productSubgroupId) {
+                                $productsTmp = (new \PrestaShopCollection('ProductSubgroupProduct', $idLang))
+                                    ->where('id_product_subgroup', '=', $productSubgroupId)
+                                    ->getResults();
+                                $productIdsIntersection = array_intersect($productIdsIntersection, array_map(fn ($n) => $n->id_product, $productsTmp));
+                            }
+                        }
+                    }
+                    if (empty($productIdsIntersection)) {
+                        $productIdsIntersection = [-1];
+                    }
+                    $this->getSearchAdapter()->addOperationsFilter(
+                        'product_group',
+                        [[['id_product', $productIdsIntersection]]]
+                    );
+                    break;
                 case 'category':
                     $this->addFilter('id_category', $filterValues);
                     break;

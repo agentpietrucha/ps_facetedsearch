@@ -444,7 +444,30 @@ class Converter
                     }
 
                     break;
+                case self::TYPE_PRODUCT_GROUP:
+                    $productGroups = (new \PrestaShopCollection('ProductGroup', $idLang))
+                        ->getResults();
+                    foreach ($productGroups as $productGroup) {
+                        if ($filter['id_value'] !== $productGroup->id) {
+                            continue;
+                        }
 
+                        if (isset($facetAndFiltersLabels[$productGroup->name])) {
+                            $filterLabels = $facetAndFiltersLabels[$productGroup->name];
+                        } else {
+                            break;
+                        }
+
+                        $productSubgroups = (new \PrestaShopCollection('ProductSubgroup', $idLang))
+                            ->where('id_product_group', '=', $productGroup->id)
+                            ->getResults();
+
+                        foreach ($productSubgroups as $productSubgroup) {
+                            if (in_array($productSubgroup->name, $filterLabels)) {
+                                $searchFilters['id_product_group'][$productGroup->id][] = $productSubgroup->id;
+                            }
+                        }
+                    }
                 case self::TYPE_PRICE:
                 case self::TYPE_WEIGHT:
                     if (isset($facetAndFiltersLabels[$filterLabel])) {
