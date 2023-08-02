@@ -725,10 +725,14 @@ class Ps_Facetedsearch extends Module implements WidgetInterface
 
     private function renderProductGroupForm(ProductGroup $productGroup)
     {
+        $title = $productGroup->id === null
+            ? $this->trans('Create new product group name', [], 'Modules.Facetedsearch.Admin')
+            : $this->trans('Edit existing product group name', [], 'Modules.Facetedsearch.Admin');
+
         $form = [
             'form' => [
                 'legend' => [
-                    'title' => $this->trans('Product Group', [], 'Modules.Facetedsearch.Admin'),
+                    'title' => $title,
                     'icon' => 'icon-cogs',
                 ],
                 'input' => [
