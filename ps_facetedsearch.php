@@ -35,7 +35,8 @@ include_once __DIR__ . '/src/Models/FilterGroup.php';
 include_once __DIR__ . '/src/Models/FilterSubgroup.php';
 include_once __DIR__ . '/src/Models/FilterValue.php';
 include_once __DIR__ . '/src/Models/ProductGroup.php';
-include_once __DIR__ . '/src/Models/ProductGroupProduct.php';
+include_once __DIR__ . '/src/Models/ProductSubgroup.php';
+include_once __DIR__ . '/src/Models/ProductSubgroupProduct.php';
 
 class Ps_Facetedsearch extends Module implements WidgetInterface
 {
@@ -722,7 +723,7 @@ class Ps_Facetedsearch extends Module implements WidgetInterface
         return $helper->generateForm([$form]);
     }
 
-    private function renderProductGroupForm(ProductGroup $productGroup, array $productIds)
+    private function renderProductGroupForm(ProductGroup $productGroup)
     {
         $form = [
             'form' => [
@@ -737,13 +738,6 @@ class Ps_Facetedsearch extends Module implements WidgetInterface
                         'name' => 'product_group_name',
                         'required' => true,
                         'lang' => true,
-                    ],
-                    [
-                        'type' => 'textarea',
-                        'label' => $this->trans('Product IDs', [], 'Modules.Facetedsearch.Admin'),
-                        'name' => 'product_group_products',
-                        'required' => true,
-                        'lang' => false,
                     ],
                 ],
                 'submit' => [
@@ -771,10 +765,71 @@ class Ps_Facetedsearch extends Module implements WidgetInterface
         $languages = $this->context->controller->getLanguages();
         $helper->languages = $languages;
 
-        $helper->fields_value['product_group_products'] = implode(', ', $productIds);
         foreach ($languages as $language) {
             $id_lang = $language['id_lang'];
             $helper->fields_value['product_group_name'][$id_lang] = $productGroup->name[$id_lang] ?? '';
+        }
+
+        return $helper->generateForm([$form]);
+    }
+
+    private function renderProductSubgroupForm(ProductSubgroup $productSubgroup, array $productIds)
+    {
+        $title = $productSubgroup->id === null
+            ? $this->trans('Create new product subgroup name', [], 'Modules.Facetedsearch.Admin')
+            : $this->trans('Edit existing product subgroup name', [], 'Modules.Facetedsearch.Admin');
+
+        $form = [
+            'form' => [
+                'legend' => [
+                    'title' => $title,
+                    'icon' => 'icon-cogs',
+                ],
+                'input' => [
+                    [
+                        'type' => 'text',
+                        'label' => $this->trans('Product subgroup name', [], 'Modules.Facetedsearch.Admin'),
+                        'name' => 'product_subgroup_name',
+                        'required' => true,
+                        'lang' => true,
+                    ],
+                    [
+                        'type' => 'textarea',
+                        'label' => $this->trans('Product IDs', [], 'Modules.Facetedsearch.Admin'),
+                        'name' => 'product_subgroup_products',
+                        'required' => true,
+                        'lang' => false,
+                    ],
+                ],
+                'submit' => [
+                    'title' => $this->trans('Save', [], 'Modules.Facetedsearch.Admin'),
+                    'class' => 'btn btn-default pull-right',
+                ],
+            ],
+        ];
+
+        $primaryKey = ProductSubgroup::$definition['primary'];
+
+        $helper = new HelperForm();
+
+        $helper->id = $productSubgroup->id;
+        $helper->identifier = $primaryKey;
+
+        $helper->name_controller = $this->name;
+        $helper->token = Tools::getAdminTokenLite('AdminModules');
+        $helper->submit_action = 'submit_' . $primaryKey;
+        $helper->show_cancel_button = $productSubgroup->id === null;
+
+        $lang_default = new Language((int) Configuration::get('PS_LANG_DEFAULT'));
+        $helper->default_form_language = $lang_default->id;
+
+        $languages = $this->context->controller->getLanguages();
+        $helper->languages = $languages;
+
+        $helper->fields_value['product_subgroup_products'] = implode(', ', $productIds);
+        foreach ($languages as $language) {
+            $id_lang = $language['id_lang'];
+            $helper->fields_value['product_subgroup_name'][$id_lang] = $productSubgroup->name[$id_lang] ?? '';
         }
 
         return $helper->generateForm([$form]);
@@ -865,26 +920,26 @@ class Ps_Facetedsearch extends Module implements WidgetInterface
         );
     }
 
-    private function clearProductGroupProduct(int $product_group_id): bool
+    private function clearProductSubgroupProduct(int $product_subgroup_id): bool
     {
         return $this->getDatabase()->execute(
-            'DELETE FROM `' . _DB_PREFIX_ . 'product_group_product` where `id_product_group` = ' . $product_group_id
+            'DELETE FROM `' . _DB_PREFIX_ . 'product_subgroup_product` where `id_product_subgroup` = ' . $product_subgroup_id
         );
     }
 
-    private function removeProductGroupProduct(int $productGroupId, int $productId): bool
+    private function removeProductSubgroupProduct(int $productSubgroupId, int $productId): bool
     {
         return $this->getDatabase()->execute(
-          'DELETE FROM `' . _DB_PREFIX_ . 'product_group_product`
-          WHERE `id_product` = ' . $productId . ' AND `id_product_group` = ' . $productGroupId
+          'DELETE FROM `' . _DB_PREFIX_ . 'product_subgroup_product`
+          WHERE `id_product` = ' . $productId . ' AND `id_product_subgroup` = ' . $productSubgroupId
         );
     }
 
-    private function removeProductGroupProducts(int $productGroupId, array $productIds): bool
+    private function removeProductSubgroupProducts(int $productSubgroupId, array $productIds): bool
     {
         return $this->getDatabase()->execute(
-            'DELETE FROM `' . _DB_PREFIX_ . 'product_group_product`
-            WHERE `id_product_group` = ' . $productGroupId . ' AND `id_product` IN (' . implode(', ', $productIds) . ')'
+            'DELETE FROM `' . _DB_PREFIX_ . 'product_subgroup_product`
+            WHERE `id_product_subgroup` = ' . $productSubgroupId . ' AND `id_product` IN (' . implode(', ', $productIds) . ')'
         );
     }
 
@@ -904,19 +959,19 @@ class Ps_Facetedsearch extends Module implements WidgetInterface
                 $this->removeCustomFilterModel('ProductGroup');
                 $this->redirectAdmin([]);
             }
-        } elseif (Tools::getValue('delete_product_group_product')) {
-            if ($productGroupId = $this->getCustomFilterModelId('ProductGroup')) {
-                if ($this->removeProductGroupProduct($productGroupId, Tools::getValue('product_id', 0))) {
-                    $this->redirectAdmin(['product_group' => $productGroupId]);
-                } else {
-                    $this->redirectAdmin([]);
+        } elseif (Tools::getValue('delete_product_subgroup_product')) {
+            if ($productSubgroupId = $this->getCustomFilterModelId('ProductSubgroup')) {
+                if ($this->removeProductSubgroupProduct($productSubgroupId, Tools::getValue('product_id', 0))) {
+                    $this->redirectAdmin([
+                        'product_subgroup' => $productSubgroupId,
+                    ]);
                 }
             }
-        } elseif (Tools::isSubmit('submit_bulk_product_group_products_delete')) {
-            if ($productGroupId = $this->getCustomFilterModelId('ProductGroup')) {
-                $productIds = Tools::getValue('product_group_products_ids');
-                if ($this->removeProductGroupProducts($productGroupId, $productIds)) {
-                    $this->redirectAdmin(['product_group' => $productGroupId]);
+        } elseif (Tools::isSubmit('submit_bulk_product_subgroup_products_delete')) {
+            if ($productSubgroupId = $this->getCustomFilterModelId('ProductSubgroup')) {
+                $productIds = Tools::getValue('product_subgroup_products_ids');
+                if ($this->removeProductSubgroupProducts($productSubgroupId, $productIds)) {
+                    $this->redirectAdmin(['product_subgroup' => $productSubgroupId]);
                 } else {
                     $this->redirectAdmin([]);
                 }
@@ -932,59 +987,103 @@ class Ps_Facetedsearch extends Module implements WidgetInterface
                 $product_group->name[$id_lang] = Tools::getValue('product_group_name_' . $id_lang);
             }
 
-            $message .= $product_group->save(true, false)
-                ?  $this->getSaveSuccessMessage($this->trans('Product group saved successfully', [], 'Modules.Facetedsearch.Admin'))
-                :  $message .= $this->getSaveFailureMessage($this->trans('Product group failed to save', [], 'Modules.Facetedsearch.Admin'));
-
-            $this->clearProductGroupProduct($product_group->id);
-
-            $products_ids = preg_replace('(\s)', '', Tools::getValue('product_group_products', ''));
-            $failedProductsIds = [];
-            if (!empty($products_ids)) {
-                $products_ids_array = array_filter(explode(',', $products_ids), fn ($n) => !empty($n) && ctype_digit($n));
-                foreach ($products_ids_array as $product_id) {
-                    $productGroupProduct = new ProductGroupProduct();
-                    $productGroupProduct->id_product_group = $product_group->id;
-                    $productGroupProduct->id_product = $product_id;
-                    try {
-                        $productGroupProduct->save();
-                    // ignore if provided product id doesn't exist
-                    } catch (Exception $e) {
-                        $failedProductsIds[] = $product_id;
-                        var_dump("\nEXCEPTION: " . $e->getMessage() . "\n");
-
-                    }
-                }
-            }
-            if (empty($failedProductsIds)) {
+            if ($product_group->save(true, false)) {
                 $this->setSessionMessageFlag('ProductGroup');
-                $this->redirectAdmin([
-                    'product_group' => $product_group->id,
-                ]);
+                $this->redirectAdmin(['product_group' => $product_group->id]);
             } else {
                 $message .= $this->getSaveFailureMessage(
-                    $this->trans('Some products have caused errors. Failed products ids: ', [], 'Modules.Facetedsearch.Admin')
-                    . implode(', ', $failedProductsIds)
+                    $this->trans('Creation of product group failed', [], 'Modules.Facetedsearch.Admin')
+                );
+            }
+        } elseif ($this->checkSubmit('ProductSubgroup')) {
+            $product_group = $this->checkIfFilterModelExists('ProductGroup');
+            $product_subgroup = $this->checkIfFilterModelExists('ProductSubgroup');
+
+            if ($product_group->id === null && $product_subgroup->id !== null) {
+                $product_group = new ProductGroup($product_subgroup->id_product_group);
+            } elseif ($product_group->id === null && $product_subgroup->id === null) {
+                $this->redirectAdmin([]);
+            }
+
+            $languages = $this->context->controller->getLanguages();
+            foreach ($languages as $language) {
+                $id_lang = $language['id_lang'];
+                $product_subgroup->name[$id_lang] = Tools::getValue('product_subgroup_name_' . $id_lang);
+            }
+
+            // set "id_product_group" only if creating new record. Don't override
+            if ($product_subgroup->id === null) {
+                $product_subgroup->id_product_group = $product_group->id;
+            }
+
+            if ($product_subgroup->save(false, false)) {
+                $this->setSessionMessageFlag('ProductSubgroup');
+                $products_ids = preg_replace('(\s)', '', Tools::getValue('product_subgroup_products', ''));
+                $failedProductsIds = [];
+                $this->clearProductSubgroupProduct($product_subgroup->id);
+                if (!empty($products_ids)) {
+                    $products_ids_array = array_filter(explode(',', $products_ids), fn ($n) => !empty($n) && ctype_digit($n));
+                    foreach ($products_ids_array as $product_id) {
+                        $productSubgroupProduct = new ProductSubgroupProduct();
+                        $productSubgroupProduct->id_product_subgroup = $product_subgroup->id;
+                        $productSubgroupProduct->id_product = $product_id;
+                        try {
+                            $productSubgroupProduct->save();
+                        } catch (Exception) {
+                            $failedProductsIds[] = $product_id;
+                        }
+                    }
+                }
+
+                if (empty($failedProductsIds)) {
+                    $this->redirectAdmin([
+                        'product_subgroup' => $product_subgroup->id,
+                        'product_group' => $product_subgroup->id_product_group,
+                    ]);
+                } else {
+                    $message .= $this->getSaveFailureMessage(
+                        $this->trans('Some products caused errors. Failed products ids: ', [], 'Modules.Facetedsearch.Admin')
+                        . implode(', ', $failedProductsIds)
+                    );
+                }
+            } else {
+                $message .= $this->getSaveFailureMessage(
+                    $this->trans('Product subgroup operation failed', [], 'Modules.Facetedsearch.Admin')
                 );
             }
         }
 
-        if ($this->getCustomFilterModelId('ProductGroup', false) !== false) {
-            if ($this->checkSessionMessage('ProductGroup')) {
+        if ($this->getCustomFilterModelId('ProductSubgroup', false) !== false) {
+            if ($this->checkSessionMessage('ProductSubgroup')) {
                 $message .= $this->getSaveSuccessMessage(
-                    $this->trans('Product group operation succeed', [], 'Modules.Facetedsearch.Admin')
+                    $this->trans('Product subgroup operation succeed', [], 'Modules.Facetedsearch.Admin')
                 );
             }
 
             $product_group = $this->checkIfFilterModelExists('ProductGroup');
-            $product_group_products = (new PrestaShopCollection('ProductGroupProduct'))
-                ->where('id_product_group', '=', $product_group->id)
+            $product_subgroup = $this->checkIfFilterModelExists('ProductSubgroup');
+
+            // If no product group is specified, user can be redirected to proper product group
+            // as long as given subgroup exists
+            if ($product_group->id === null && $product_subgroup->id !== null) {
+                $this->redirectAdmin([
+                    'product_group' => $product_subgroup->id_product_group,
+                    'product_subgroup' => $product_subgroup->id,
+                ]);
+                // if neither filter group nor subgroup exists (id === 0), then redirect to module homepage
+            } elseif ($product_group->id === null && $product_subgroup->id === null) {
+                $this->redirectAdmin([]);
+            }
+
+            $product_subgroup_products = (new PrestaShopCollection('ProductSubgroupProduct'))
+                ->where('id_product_subgroup', '=', $product_subgroup->id)
                 ->getResults();
 
-            $products_ids = array_map(fn ($n) => $n->id_product, $product_group_products);
-            $html = $this->renderProductGroupForm($product_group, $products_ids);
+            $products_ids = array_map(fn ($n) => $n->id_product, $product_subgroup_products);
 
-            if ($product_group->id) {
+            $html = $this->renderProductSubgroupForm($product_subgroup, $products_ids);
+
+            if ($product_subgroup->id) {
                 $id_lang = $this->context->language->id;
                 $products = [];
                 if (!empty($products_ids)) {
@@ -999,14 +1098,50 @@ class Ps_Facetedsearch extends Module implements WidgetInterface
                 }
                 $this->context->smarty->assign([
                     'products' => $products,
+                    'product_subgroup_id' => $product_subgroup->id,
+                    'back_url' => $this->context->link->getAdminLink('AdminModules', true, [], [
+                        'configure' => $this->name,
+                        'product_group' => $product_group->id,
+                    ]),
+                    'current_url' => $this->context->link->getAdminLink('AdminModules', true, [], [
+                        'configure' => $this->name,
+                        'product_subgroup' => $product_subgroup->id,
+                        'product_group' => $product_subgroup->id_product_group,
+                    ]),
+                ]);
+                $html .= $this->display(__FILE__, 'views/templates/admin/product_subgroup.tpl');
+            }
+
+            return $message . $html;
+
+        } elseif ($this->getCustomFilterModelId('ProductGroup', false) !== false) {
+            if ($this->checkSessionMessage('ProductGroup')) {
+                $message .= $this->getSaveSuccessMessage(
+                    $this->trans('Product group operation succeed', [], 'Modules.Facetedsearch.Admin')
+                );
+            }
+
+            $product_group = $this->checkIfFilterModelExists('ProductGroup');
+
+            $html = $this->renderProductGroupForm($product_group);
+
+            if ($product_group->id) {
+                $subgroups = (new PrestaShopCollection('ProductSubgroup', $this->context->language->id))
+                    ->where('id_product_group', '=', $product_group->id)
+                    ->orderBy('position')
+                    ->getResults();;
+                $this->context->smarty->assign([
+                    'current_url' => $this->context->link->getAdminLink('AdminModules') . '&configure=ps_facetedsearch&tab_module=front_office_features&module_name=ps_facetedsearch',
+                    'product_subgroups' => $subgroups,
                     'product_group_id' => $product_group->id,
                     'back_url' => $this->context->link->getAdminLink('AdminModules', true, [], [
-                        'configure' => $this->name
+                        'configure' => $this->name,
                     ]),
-                    'current_url' => $this->context->link->getAdminLink('AdminModules', true, [], ['configure' => $this->name]),
                 ]);
+
                 $html .= $this->display(__FILE__, 'views/templates/admin/product_group.tpl');
             }
+
             return $message . $html;
 
         }
@@ -1079,7 +1214,7 @@ class Ps_Facetedsearch extends Module implements WidgetInterface
             $filter_subgroup = $this->checkIfFilterModelExists('FilterSubgroup');
 
             if ($filter_group->id === null && $filter_subgroup->id !== null) {
-                $filter_group = new FilterGroup($filter_subgroup->id);
+                $filter_group = new FilterGroup($filter_subgroup->id_filter_group);
             } elseif ($filter_group->id === null && $filter_subgroup->id === null) {
                 $this->redirectAdmin([]);
             }
