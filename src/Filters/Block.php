@@ -1051,7 +1051,9 @@ class Block
 
             if (array_key_exists('id_product_group', $selectedFilters)) {
                 foreach ($selectedFilters['id_product_group'] as $selectedFilter) {
-                    $productGroupBlock[$idProductGroup]['values'][$idProductSubgroup]['checked'] = true;
+                    if (in_array($idProductSubgroup, $selectedFilter)) {
+                        $productGroupBlock[$idProductGroup]['values'][$idProductSubgroup]['checked'] = true;
+                    }
                 }
             }
 
