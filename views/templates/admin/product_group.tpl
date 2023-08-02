@@ -4,7 +4,7 @@
     <thead>
     <tr>
       <th class="fixed-width-xs center">ID</th>
-      <th class="fixed-width-lg">Subgroup name</th>
+      <th class="fixed-width-lg">{l s='Subgroup name' d='Modules.Facetedsearch.Admin'}</th>
       <th class="fixed-width-xs center"><span class="title_box text-right">{l s='Actions' d='Modules.Facetedsearch.Admin'}</span></th>
     </tr>
     </thead>
